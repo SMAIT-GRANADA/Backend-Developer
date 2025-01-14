@@ -4,7 +4,6 @@ const bcrypt = require('bcryptjs');
 
 async function createUser(userData) {
   try {
-    // Validate required fields
     const requiredFields = ['username', 'password', 'name', 'email', 'roleId'];
     for (const field of requiredFields) {
       if (!userData[field]) {
@@ -12,7 +11,6 @@ async function createUser(userData) {
       }
     }
 
-    // Check if role exists
     const roleExists = await prisma.role.findUnique({
       where: { id: Number(userData.roleId) }
     });
@@ -21,7 +19,6 @@ async function createUser(userData) {
       throw new Error('Role not found');
     }
 
-    // Check existing username
     const existingUsername = await prisma.user.findUnique({
       where: { username: userData.username }
     });
@@ -30,7 +27,6 @@ async function createUser(userData) {
       throw new Error('Username already exists');
     }
 
-    // Check existing email
     const existingEmail = await prisma.user.findUnique({
       where: { email: userData.email }
     });
@@ -39,7 +35,6 @@ async function createUser(userData) {
       throw new Error('Email already exists');
     }
 
-    // Hash password
     const hashedPassword = await bcrypt.hash(userData.password, 10);
 
     // Create user with role
@@ -68,7 +63,6 @@ async function createUser(userData) {
       }
     });
 
-    // Remove password from response
     delete newUser.password;
     return newUser;
 
@@ -144,7 +138,6 @@ async function updateUser(id, userData) {
       throw new Error('User not found');
     }
 
-    // Check username uniqueness if being updated
     if (userData.username) {
       const existingUsername = await prisma.user.findFirst({
         where: {
@@ -170,7 +163,6 @@ async function updateUser(id, userData) {
       }
     }
 
-    // Check if roleId exists and is valid when updating role
     if (userData.roleId) {
       const roleExists = await prisma.role.findUnique({
         where: { id: Number(userData.roleId) }
@@ -179,18 +171,12 @@ async function updateUser(id, userData) {
       if (!roleExists) {
         throw new Error('Role not found');
       }
-
-      // Update user role
       await prisma.userRole.updateMany({
         where: { userId: Number(id) },
         data: { roleId: Number(userData.roleId) }
       });
-
-      // Remove roleId from userData to prevent duplicate update
       delete userData.roleId;
     }
-
-    // Hash password if it's being updated
     if (userData.password) {
       userData.password = await bcrypt.hash(userData.password, 10);
     }
@@ -242,13 +228,10 @@ async function deleteUser(id) {
       throw new Error('Cannot delete superadmin user');
     }
 
-    // Delete related records and user in a transaction
     await prisma.$transaction([
-      // Delete UserRole records
       prisma.userRole.deleteMany({
         where: { userId: Number(id) }
       }),
-      // Delete related records in other tables
       prisma.attendance.deleteMany({
         where: { userId: Number(id) }
       }),
@@ -271,7 +254,6 @@ async function deleteUser(id) {
           ]
         }
       }),
-      // Finally delete the user
       prisma.user.delete({
         where: { id: Number(id) }
       })
