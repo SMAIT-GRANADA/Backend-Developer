@@ -5,19 +5,10 @@ const { checkAuth, academicAccess } = require("../middlewares/authMiddleware");
 
 router.use(checkAuth);
 
-// Create academic record (Guru & Superadmin only)
-router.post("/",academicAccess("create"),academicController.createAcademicRecord);
-
-// Get all academic records (Guru, Superadmin, Ortu)
-router.get("/", academicAccess("read"), academicController.getAcademicRecords);
-
-// Get specific academic record (Guru, Superadmin, Ortu)
-router.get("/:id",academicAccess("read"),academicController.getAcademicRecordById);
-
-// Update academic record (Guru & Superadmin only)
-router.put("/:id",academicAccess("update"),academicController.updateAcademicRecord);
-
-// Delete academic record (Superadmin only)
-router.delete("/:id", academicAccess("delete"),academicController.deleteAcademicRecord);
+router.post("/academic", academicAccess("create"), academicController.createAcademicRecord);
+router.get("/academic", academicAccess("read"), academicController.getAcademicRecords);
+router.get("/academic/:id", academicAccess("read"), academicController.getAcademicRecordById);
+router.put("/academic/:id", academicAccess("update"), academicController.updateAcademicRecord);
+router.delete("/academic/:id", academicAccess("delete"), academicController.deleteAcademicRecord);
 
 module.exports = router;
