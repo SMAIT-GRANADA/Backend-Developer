@@ -67,31 +67,6 @@ const validatePhoto = (req, res, next) => {
   next();
 };
 
-const validateAttendanceTime = (req, res, next) => {
-  const currentHour = new Date().getHours();
-  const userRoles = req.user.roles;
-
-  const SCHOOL_START_HOUR = 7;
-  const SCHOOL_END_HOUR = 17;
-  const STUDENT_DEADLINE = 8;
-
-  if (currentHour < SCHOOL_START_HOUR || currentHour >= SCHOOL_END_HOUR) {
-    return res.status(403).json({
-      status: false,
-      message: 'Absensi hanya dapat dilakukan pada jam operasional sekolah (07:00 - 17:00)'
-    });
-  }
-
-  if (userRoles.includes('siswa') && req.path === '/check-in' && currentHour >= STUDENT_DEADLINE) {
-    return res.status(403).json({
-      status: false,
-      message: 'Siswa hanya dapat melakukan check-in sebelum jam 08:00'
-    });
-  }
-
-  next();
-};
-
 function checkTeacherOrStudent(req, res, next) {
   const userRoles = req.user.roles;
   
@@ -107,6 +82,5 @@ function checkTeacherOrStudent(req, res, next) {
 module.exports = {
   checkGeolocation,
   validatePhoto,
-  validateAttendanceTime,
   checkTeacherOrStudent
 };
