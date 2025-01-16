@@ -116,7 +116,6 @@ model Quote {
 model Attendance {
   id                Int       @id @default(autoincrement())
   userId            Int
-  locationId        Int
   checkInTime       DateTime
   checkInPhotoUrl   String
   checkInLatitude   Float
@@ -125,26 +124,12 @@ model Attendance {
   checkOutPhotoUrl  String?
   checkOutLatitude  Float?
   checkOutLongitude Float?
-  status            String    // hadir|izin|sakit|alpha
+  status            String    
+  user              User      @relation(fields: [userId], references: [id])
   createdAt         DateTime  @default(now())
   updatedAt         DateTime? @updatedAt
-  user              User      @relation(fields: [userId], references: [id])
-  location          Location  @relation(fields: [locationId], references: [id])
 
   @@map("attendance")
-}
-model Location {
-  id          Int         @id @default(autoincrement())
-  name        String
-  latitude    Float
-  longitude   Float
-  radius      Float      // Radius dalam meter
-  isActive    Boolean    @default(true)
-  createdAt   DateTime   @default(now())
-  updatedAt   DateTime?  @updatedAt
-  attendance  Attendance[]
-
-  @@map("locations")
 }
 
 // Student Management
