@@ -1,21 +1,42 @@
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
-const { Storage } = require('@google-cloud/storage');
-const storage = new Storage();
-const bucket = storage.bucket(process.env.GOOGLE_CLOUD_BUCKET_NAME);
+const { uploadPhotoToGCS, deletePhotoFromGCS, bucket } = require('../config/gcs');
+
+const validatePhotoBase64 = (photoBase64) => {
+  if (!photoBase64) {
+    throw new Error('Foto tidak boleh kosong');
+  }
+  
+  const matches = photoBase64.match(/^data:([A-Za-z-+\/]+);base64,(.+)$/);
+  if (!matches || matches.length !== 3) {
+    throw new Error('Format foto tidak valid');
+  }
+  
+  return matches[2];
+};
 
 const createAttendance = async (data) => {
   try {
-    // Upload foto ke GCS
-    const photoBuffer = Buffer.from(data.photoBase64.split(';base64,').pop(), 'base64');
-    const photoFileName = `attendance/${data.userId}/${Date.now()}.jpg`;
-    const file = bucket.file(photoFileName);
-    
-    await file.save(photoBuffer, {
-      contentType: 'image/jpeg'
-    });
+    if (!data.userId || !data.latitude || !data.longitude) {
+      throw new Error('Data attendance tidak lengkap');
+    }
 
-    const photoUrl = `https://storage.googleapis.com/${process.env.GOOGLE_CLOUD_BUCKET_NAME}/${photoFileName}`;
+    const existingAttendance = await getTodayAttendance(data.userId);
+    if (existingAttendance) {
+      throw new Error('Anda sudah melakukan absensi hari ini');
+    }
+
+    let photoUrl;
+    try {
+      const base64Data = validatePhotoBase64(data.photoBase64);
+      const photoBuffer = Buffer.from(base64Data, 'base64');
+      const photoFileName = `attendance/${data.userId}/${Date.now()}_checkin.jpg`;
+      
+      photoUrl = await uploadPhotoToGCS(data.photoBase64, data.userId);
+    } catch (uploadError) {
+      console.error('Error uploading check-in photo:', uploadError);
+      throw new Error('Gagal mengunggah foto check-in');
+    }
 
     const attendance = await prisma.attendance.create({
       data: {
@@ -42,22 +63,36 @@ const createAttendance = async (data) => {
 
     return attendance;
   } catch (error) {
-    throw error;
+    console.error('Error in createAttendance:', error);
+    throw new Error(error.message || 'Terjadi kesalahan saat membuat attendance');
   }
 };
 
 const updateAttendance = async (id, data) => {
   try {
-    // Upload foto ke GCS
-    const photoBuffer = Buffer.from(data.photoBase64.split(';base64,').pop(), 'base64');
-    const photoFileName = `attendance/${data.userId}/checkout_${Date.now()}.jpg`;
-    const file = bucket.file(photoFileName);
-    
-    await file.save(photoBuffer, {
-      contentType: 'image/jpeg'
+    if (!id || !data.userId || !data.latitude || !data.longitude) {
+      throw new Error('Data checkout tidak lengkap');
+    }
+
+    const existingAttendance = await prisma.attendance.findUnique({
+      where: { id }
     });
 
-    const photoUrl = `https://storage.googleapis.com/${process.env.GOOGLE_CLOUD_BUCKET_NAME}/${photoFileName}`;
+    if (!existingAttendance) {
+      throw new Error('Data attendance tidak ditemukan');
+    }
+
+    if (existingAttendance.checkOutTime) {
+      throw new Error('Anda sudah melakukan checkout');
+    }
+
+    let photoUrl;
+    try {
+      photoUrl = await uploadPhotoToGCS(data.photoBase64, data.userId);
+    } catch (uploadError) {
+      console.error('Error uploading check-out photo:', uploadError);
+      throw new Error('Gagal mengunggah foto check-out');
+    }
 
     const attendance = await prisma.attendance.update({
       where: { id },
@@ -83,30 +118,215 @@ const updateAttendance = async (id, data) => {
 
     return attendance;
   } catch (error) {
-    throw error;
+    console.error('Error in updateAttendance:', error);
+    throw new Error(error.message || 'Terjadi kesalahan saat update attendance');
   }
 };
 
 const getTodayAttendance = async (userId) => {
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  
-  const tomorrow = new Date(today);
-  tomorrow.setDate(tomorrow.getDate() + 1);
+  try {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
 
-  return await prisma.attendance.findFirst({
-    where: {
-      userId,
-      checkInTime: {
-        gte: today,
-        lt: tomorrow
+    return await prisma.attendance.findFirst({
+      where: {
+        userId,
+        checkInTime: {
+          gte: today,
+          lt: tomorrow
+        }
+      },
+      include: {
+        user: {
+          select: {
+            name: true,
+            roles: {
+              include: {
+                role: true
+              }
+            }
+          }
+        }
+      }
+    });
+  } catch (error) {
+    console.error('Error in getTodayAttendance:', error);
+    throw new Error('Gagal mengambil data attendance hari ini');
+  }
+};
+
+const getAttendanceHistory = async (userId, startDate, endDate) => {
+  try {
+    return await prisma.attendance.findMany({
+      where: {
+        userId,
+        checkInTime: {
+          gte: startDate,
+          lte: endDate
+        }
+      },
+      orderBy: {
+        checkInTime: 'desc'
+      },
+      include: {
+        user: {
+          select: {
+            name: true,
+            roles: {
+              include: {
+                role: true
+              }
+            }
+          }
+        }
+      }
+    });
+  } catch (error) {
+    console.error('Error in getAttendanceHistory:', error);
+    throw new Error('Gagal mengambil riwayat attendance');
+  }
+};
+
+const getAttendanceReport = async (startDate, endDate, page, limit) => {
+  try {
+    const skip = (page - 1) * limit;
+    
+    const [data, total] = await Promise.all([
+      prisma.attendance.findMany({
+        where: {
+          checkInTime: {
+            gte: startDate,
+            lte: endDate
+          }
+        },
+        include: {
+          user: {
+            select: {
+              name: true,
+              roles: {
+                include: {
+                  role: true
+                }
+              }
+            }
+          }
+        },
+        orderBy: {
+          checkInTime: 'desc'
+        },
+        skip,
+        take: limit
+      }),
+      prisma.attendance.count({
+        where: {
+          checkInTime: {
+            gte: startDate,
+            lte: endDate
+          }
+        }
+      })
+    ]);
+
+    return { data, total };
+  } catch (error) {
+    console.error('Error in getAttendanceReport:', error);
+    throw new Error('Gagal mengambil laporan attendance');
+  }
+};
+
+const getAttendanceStatistics = async (startDate, endDate) => {
+  try {
+    const attendances = await prisma.attendance.findMany({
+      where: {
+        checkInTime: {
+          gte: startDate,
+          lte: endDate
+        }
+      },
+      include: {
+        user: {
+          select: {
+            name: true,
+            roles: true
+          }
+        }
+      }
+    });
+
+    const statistics = {
+      total: attendances.length,
+      onTime: 0,
+      late: 0,
+      checkoutComplete: 0,
+      byRole: {}
+    };
+
+    attendances.forEach(attendance => {
+      attendance.user.roles.forEach(role => {
+        if (!statistics.byRole[role.name]) {
+          statistics.byRole[role.name] = 0;
+        }
+        statistics.byRole[role.name]++;
+      });
+
+      if (attendance.checkOutTime) {
+        statistics.checkoutComplete++;
+      }
+    });
+
+    return statistics;
+  } catch (error) {
+    console.error('Error in getAttendanceStatistics:', error);
+    throw new Error('Gagal mengambil statistik attendance');
+  }
+};
+
+const deleteAttendance = async (id) => {
+  try {
+    const attendance = await prisma.attendance.findUnique({
+      where: { id }
+    });
+
+    if (!attendance) {
+      throw new Error('Attendance tidak ditemukan');
+    }
+
+    if (attendance.checkInPhotoUrl) {
+      try {
+        await deletePhotoFromGCS(attendance.checkInPhotoUrl);
+      } catch (error) {
+        console.error('Error deleting check-in photo:', error);
       }
     }
-  });
+
+    if (attendance.checkOutPhotoUrl) {
+      try {
+        await deletePhotoFromGCS(attendance.checkOutPhotoUrl);
+      } catch (error) {
+        console.error('Error deleting check-out photo:', error);
+      }
+    }
+
+    await prisma.attendance.delete({
+      where: { id }
+    });
+
+    return { message: 'Attendance berhasil dihapus' };
+  } catch (error) {
+    console.error('Error in deleteAttendance:', error);
+    throw new Error(error.message || 'Gagal menghapus attendance');
+  }
 };
 
 module.exports = {
   createAttendance,
   updateAttendance,
-  getTodayAttendance
+  getTodayAttendance,
+  getAttendanceHistory,
+  getAttendanceReport,
+  getAttendanceStatistics,
+  deleteAttendance
 };
