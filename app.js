@@ -46,7 +46,7 @@ app.use((err, req, res, next) => {
 });
 
 // Routes
-const routers = [userRouter, academicRouter];
+const routers = [userRouter, academicRouter, newsRouter];
 routers.forEach((router) => app.use("/api/v1", router));
 
 // Handle 404
