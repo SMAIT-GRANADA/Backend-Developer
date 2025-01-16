@@ -4,8 +4,8 @@ const session = require("express-session");
 const cors = require("cors");
 const userRouter = require("./routes/userRoutes");
 const academicRouter = require("./routes/academicRoutes");
+const attendanceRouter = require("./routes/attendanceRoutes");
 const newsRouter = require("./routes/newsRoutes");
-
 dotenv.config();
 
 const app = express();
@@ -17,8 +17,10 @@ app.use(
     credentials: true,
   })
 );
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+
+// Increase payload limit for base64 images
+app.use(express.json({ limit: "10mb" }));
+app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 
 // Session configuration
 app.use(
@@ -44,7 +46,7 @@ app.use((err, req, res, next) => {
 });
 
 // Routes
-const routers = [userRouter, academicRouter, newsRouter];
+const routers = [userRouter, academicRouter];
 routers.forEach((router) => app.use("/api/v1", router));
 
 // Handle 404

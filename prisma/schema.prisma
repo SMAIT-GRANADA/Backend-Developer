@@ -114,15 +114,20 @@ model Quote {
 
 // Attendance System
 model Attendance {
-  id             Int       @id @default(autoincrement())
-  userId         Int       @map("user_id")
-  attendanceDate DateTime  @map("attendance_date")
-  checkIn        DateTime? @map("check_in")
-  checkOut       DateTime? @map("check_out")
-  status         String    // hadir|izin|sakit|alpha
-  createdAt      DateTime  @default(now()) @map("created_at")
-  updatedAt      DateTime? @updatedAt @map("updated_at")
-  user           User      @relation(fields: [userId], references: [id])
+  id                Int       @id @default(autoincrement())
+  userId            Int
+  checkInTime       DateTime
+  checkInPhotoUrl   String
+  checkInLatitude   Float
+  checkInLongitude  Float
+  checkOutTime      DateTime?
+  checkOutPhotoUrl  String?
+  checkOutLatitude  Float?
+  checkOutLongitude Float?
+  status            String    
+  user              User      @relation(fields: [userId], references: [id])
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime? @updatedAt
 
   @@map("attendance")
 }
