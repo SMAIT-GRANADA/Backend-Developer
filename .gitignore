@@ -4,3 +4,9 @@ node_modules
 package-lock.json
 prisma/migrations/
 !prisma/
+
+# Credentials and keys
+config/keys/
+*.json
+!package.json
+!package-lock.json
