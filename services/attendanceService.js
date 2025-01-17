@@ -1,6 +1,8 @@
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
-const { uploadPhotoToGCS, deletePhotoFromGCS, bucket } = require('../config/gcs');
+const { uploadPhotoToGCS, deletePhotoFromGCS } = require('../config/gcs');
+const { Parser } = require('json2csv');
+const XLSX = require('xlsx');
 
 const validatePhotoBase64 = (photoBase64) => {
   if (!photoBase64) {
@@ -70,10 +72,6 @@ const createAttendance = async (data) => {
 
 const updateAttendance = async (id, data) => {
   try {
-    if (!id || !data.userId || !data.latitude || !data.longitude) {
-      throw new Error('Data checkout tidak lengkap');
-    }
-
     const existingAttendance = await prisma.attendance.findUnique({
       where: { id }
     });
@@ -86,22 +84,31 @@ const updateAttendance = async (id, data) => {
       throw new Error('Anda sudah melakukan checkout');
     }
 
-    let photoUrl;
-    try {
-      photoUrl = await uploadPhotoToGCS(data.photoBase64, data.userId);
-    } catch (uploadError) {
-      console.error('Error uploading check-out photo:', uploadError);
-      throw new Error('Gagal mengunggah foto check-out');
-    }
+    let updateData = {};
 
-    const attendance = await prisma.attendance.update({
-      where: { id },
-      data: {
+    if (data.photoBase64 && data.latitude && data.longitude) {
+      let photoUrl;
+      try {
+        photoUrl = await uploadPhotoToGCS(data.photoBase64, existingAttendance.userId);
+      } catch (uploadError) {
+        console.error('Error uploading check-out photo:', uploadError);
+        throw new Error('Gagal mengunggah foto check-out');
+      }
+
+      updateData = {
         checkOutTime: new Date(),
         checkOutPhotoUrl: photoUrl,
         checkOutLatitude: data.latitude,
         checkOutLongitude: data.longitude
-      },
+      };
+    } else {
+      updateData = { ...data };
+      delete updateData.id;
+    }
+
+    const attendance = await prisma.attendance.update({
+      where: { id },
+      data: updateData,
       include: {
         user: {
           select: {
@@ -119,6 +126,46 @@ const updateAttendance = async (id, data) => {
     return attendance;
   } catch (error) {
     console.error('Error in updateAttendance:', error);
+    throw new Error(error.message || 'Terjadi kesalahan saat update attendance');
+  }
+};
+
+const updateAttendanceStatus = async (id, updateData) => {
+  try {
+    const existingAttendance = await prisma.attendance.findUnique({
+      where: { id }
+    });
+
+    if (!existingAttendance) {
+      throw new Error('Data attendance tidak ditemukan');
+    }
+
+    const safeUpdateData = { ...updateData };
+    delete safeUpdateData.id;
+    delete safeUpdateData.userId;
+    delete safeUpdateData.checkInTime;
+    delete safeUpdateData.checkInPhotoUrl;
+
+    const attendance = await prisma.attendance.update({
+      where: { id },
+      data: safeUpdateData,
+      include: {
+        user: {
+          select: {
+            name: true,
+            roles: {
+              include: {
+                role: true
+              }
+            }
+          }
+        }
+      }
+    });
+
+    return attendance;
+  } catch (error) {
+    console.error('Error in updateAttendanceStatus:', error);
     throw new Error(error.message || 'Terjadi kesalahan saat update attendance');
   }
 };
@@ -283,6 +330,87 @@ const getAttendanceStatistics = async (startDate, endDate) => {
     throw new Error('Gagal mengambil statistik attendance');
   }
 };
+const exportAttendance = async (startDate, endDate, format = 'csv') => {
+  try {
+    const attendances = await prisma.attendance.findMany({
+      where: {
+        checkInTime: {
+          gte: startDate,
+          lte: endDate
+        }
+      },
+      include: {
+        user: {
+          select: {
+            name: true,
+            email: true,
+            roles: {
+              include: {
+                role: true
+              }
+            }
+          }
+        }
+      },
+      orderBy: {
+        checkInTime: 'asc'
+      }
+    });
+
+    const exportData = attendances.map(attendance => ({
+      'ID': attendance.id,
+      'Tanggal': new Date(attendance.checkInTime).toLocaleDateString('id-ID'),
+      'Nama': attendance.user.name,
+      'Email': attendance.user.email,
+      'Role': attendance.user.roles.map(r => r.role.name).join(', '),
+      'Status': attendance.status,
+      'Jam Masuk': attendance.checkInTime ? new Date(attendance.checkInTime).toLocaleTimeString('id-ID') : '-',
+      'Lokasi Masuk': `${attendance.checkInLatitude}, ${attendance.checkInLongitude}`,
+      'Jam Keluar': attendance.checkOutTime ? new Date(attendance.checkOutTime).toLocaleTimeString('id-ID') : '-',
+      'Lokasi Keluar': attendance.checkOutLatitude ? `${attendance.checkOutLatitude}, ${attendance.checkOutLongitude}` : '-'
+    }));
+
+    if (format === 'csv') {
+      const csvFields = [
+        'ID', 'Tanggal', 'Nama', 'Email', 'Role', 'Status',
+        'Jam Masuk', 'Lokasi Masuk', 'Jam Keluar', 'Lokasi Keluar'
+      ];
+      const parser = new Parser({ fields: csvFields });
+      return parser.parse(exportData);
+    } else {
+      const workbook = XLSX.utils.book_new();
+      const worksheet = XLSX.utils.json_to_sheet(exportData);
+
+      // Set column widths
+      const colWidths = [
+        { wch: 5 },  // ID
+        { wch: 12 }, // Tanggal
+        { wch: 25 }, // Nama
+        { wch: 30 }, // Email
+        { wch: 15 }, // Role
+        { wch: 10 }, // Status
+        { wch: 12 }, // Jam Masuk
+        { wch: 25 }, // Lokasi Masuk
+        { wch: 12 }, // Jam Keluar
+        { wch: 25 }, // Lokasi Keluar
+      ];
+      worksheet['!cols'] = colWidths;
+
+      XLSX.utils.book_append_sheet(workbook, worksheet, 'Attendance Report');
+      
+      const buffer = XLSX.write(workbook, { 
+        type: 'buffer', 
+        bookType: 'xlsx',
+        bookSST: false
+      });
+
+      return buffer;
+    }
+  } catch (error) {
+    console.error('Error in exportAttendance:', error);
+    throw new Error('Gagal mengekspor data absensi');
+  }
+};
 
 const deleteAttendance = async (id) => {
   try {
@@ -324,9 +452,11 @@ const deleteAttendance = async (id) => {
 module.exports = {
   createAttendance,
   updateAttendance,
+  updateAttendanceStatus,
   getTodayAttendance,
   getAttendanceHistory,
   getAttendanceReport,
   getAttendanceStatistics,
+  exportAttendance,
   deleteAttendance
 };

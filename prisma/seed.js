@@ -1,20 +1,20 @@
-const { PrismaClient } = require('@prisma/client')
-const prisma = new PrismaClient()
+const { PrismaClient } = require('@prisma/client');
+const prisma = new PrismaClient();
 
 async function main() {
   try {
     // Clean up existing data
-    await prisma.newsMedia.deleteMany()
-    await prisma.news.deleteMany()
-    await prisma.quote.deleteMany()
-    await prisma.salarySlip.deleteMany()
-    await prisma.attendance.deleteMany()
-    await prisma.studentPoint.deleteMany()
-    await prisma.academicRecord.deleteMany()
-    await prisma.userRole.deleteMany()
-    await prisma.superAdmin.deleteMany()
-    await prisma.role.deleteMany()
-    await prisma.user.deleteMany()
+    await prisma.newsMedia.deleteMany();
+    await prisma.news.deleteMany();
+    await prisma.quote.deleteMany();
+    await prisma.salarySlip.deleteMany();
+    await prisma.attendance.deleteMany();
+    await prisma.studentPoint.deleteMany();
+    await prisma.academicRecord.deleteMany();
+    await prisma.userRole.deleteMany();
+    await prisma.superAdmin.deleteMany();
+    await prisma.role.deleteMany();
+    await prisma.user.deleteMany();
 
     // Create Roles
     const roles = await Promise.all([
@@ -48,44 +48,44 @@ async function main() {
           description: 'Student role'
         }
       })
-    ])
+    ]);
 
     // Create Super Admin User
     const superAdminUser = await prisma.user.create({
       data: {
         username: 'superadmin',
-        password: 'superadmin123', // In production, use hashed password
+        password: 'superadmin123',
         name: 'Super Admin',
         email: 'superadmin@granada.sch.id',
         roles: {
           create: {
-            roleId: roles[0].id // Superadmin role
+            roleId: roles[0].id
           }
         }
       }
-    })
+    });
 
     // Create SuperAdmin record
     const superAdmin = await prisma.superAdmin.create({
       data: {
         userId: superAdminUser.id
       }
-    })
+    });
 
     // Create Admin User
     const adminUser = await prisma.user.create({
       data: {
         username: 'admin',
-        password: 'admin123', // In production, use hashed password
+        password: 'admin123',
         name: 'Admin User',
         email: 'admin@granada.sch.id',
         roles: {
           create: {
-            roleId: roles[1].id // Admin role
+            roleId: roles[1].id
           }
         }
       }
-    })
+    });
 
     // Create Teacher Users
     const teachers = await Promise.all([
@@ -97,7 +97,7 @@ async function main() {
           email: 'ahmad@granada.sch.id',
           roles: {
             create: {
-              roleId: roles[2].id // Teacher role
+              roleId: roles[2].id
             }
           }
         }
@@ -110,42 +110,12 @@ async function main() {
           email: 'siti@granada.sch.id',
           roles: {
             create: {
-              roleId: roles[2].id // Teacher role
+              roleId: roles[2].id
             }
           }
         }
       })
-    ])
-
-    // Create Parent Users
-    const parents = await Promise.all([
-      prisma.user.create({
-        data: {
-          username: 'ortu1',
-          password: 'ortu123',
-          name: 'Budi Parent',
-          email: 'budi@example.com',
-          roles: {
-            create: {
-              roleId: roles[3].id // Parent role
-            }
-          }
-        }
-      }),
-      prisma.user.create({
-        data: {
-          username: 'ortu2',
-          password: 'ortu123',
-          name: 'Ani Parent',
-          email: 'ani@example.com',
-          roles: {
-            create: {
-              roleId: roles[3].id // Parent role
-            }
-          }
-        }
-      })
-    ])
+    ]);
 
     // Create Student Users
     const students = await Promise.all([
@@ -157,7 +127,7 @@ async function main() {
           email: 'deni@student.granada.sch.id',
           roles: {
             create: {
-              roleId: roles[4].id // Student role
+              roleId: roles[4].id
             }
           }
         }
@@ -170,12 +140,12 @@ async function main() {
           email: 'rina@student.granada.sch.id',
           roles: {
             create: {
-              roleId: roles[4].id // Student role
+              roleId: roles[4].id
             }
           }
         }
       })
-    ])
+    ]);
 
     // Create Sample News
     const news = await prisma.news.create({
@@ -192,7 +162,7 @@ async function main() {
           }
         }
       }
-    })
+    });
 
     // Create Sample Quotes
     await prisma.quote.create({
@@ -201,7 +171,7 @@ async function main() {
         superAdminId: superAdmin.id,
         isActive: true
       }
-    })
+    });
 
     // Create Sample Attendance Records
     await Promise.all(
@@ -209,14 +179,21 @@ async function main() {
         prisma.attendance.create({
           data: {
             userId: teacher.id,
-            attendanceDate: new Date(),
-            checkIn: new Date(),
-            checkOut: new Date(),
-            status: 'hadir'
+            checkInTime: new Date(),
+            checkInPhotoUrl: '/uploads/attendance/checkin.jpg',
+            checkInLatitude: -0.457833,
+            checkInLongitude: 117.1259754,
+            checkOutTime: new Date(),
+            checkOutPhotoUrl: '/uploads/attendance/checkout.jpg',
+            checkOutLatitude: -0.457833,
+            checkOutLongitude: 117.1259754,
+            status: 'hadir',
+            createdAt: new Date(),
+            updatedAt: new Date()
           }
         })
       )
-    )
+    );
 
     // Create Sample Student Points
     await Promise.all(
@@ -230,7 +207,7 @@ async function main() {
           }
         })
       )
-    )
+    );
 
     // Create Sample Academic Records
     await Promise.all(
@@ -248,7 +225,7 @@ async function main() {
           }
         })
       )
-    )
+    );
 
     // Create Sample Salary Slips
     await Promise.all(
@@ -262,15 +239,15 @@ async function main() {
           }
         })
       )
-    )
+    );
 
-    console.log('Seed data created successfully')
+    console.log('Seed data created successfully');
   } catch (error) {
-    console.error('Error seeding data:', error)
-    process.exit(1)
+    console.error('Error seeding data:', error);
+    process.exit(1);
   } finally {
-    await prisma.$disconnect()
+    await prisma.$disconnect();
   }
 }
 
-main()
+main();

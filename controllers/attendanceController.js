@@ -283,13 +283,23 @@ const updateAttendanceRecord = async (req, res) => {
       });
     }
 
-    const attendance = await attendanceService.updateAttendance(parseInt(id), updateData);
-
+    if (updateData.checkOutTime || updateData.checkOutPhotoUrl || 
+        updateData.checkOutLatitude || updateData.checkOutLongitude) {
+      const attendance = await attendanceService.updateAttendance(parseInt(id), updateData);
+      return res.status(200).json({
+        status: true,
+        message: 'Data absensi berhasil diupdate',
+        data: attendance
+      });
+    } 
+    
+    const attendance = await attendanceService.updateAttendanceStatus(parseInt(id), updateData);
     return res.status(200).json({
       status: true,
       message: 'Data absensi berhasil diupdate',
       data: attendance
     });
+
   } catch (error) {
     console.error('Error in updateAttendanceRecord:', error);
     return res.status(500).json({
@@ -298,7 +308,6 @@ const updateAttendanceRecord = async (req, res) => {
     });
   }
 };
-
 module.exports = {
   checkIn,
   checkOut,
