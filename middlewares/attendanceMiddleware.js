@@ -2,8 +2,8 @@ const checkGeolocation = (req, res, next) => {
   const { latitude, longitude } = req.body;
   
   // Koordinat sekolah
-  const SCHOOL_LATITUDE = -0.457833;
-  const SCHOOL_LONGITUDE = 117.1259754;
+  const SCHOOL_LATITUDE = -1.248461;
+  const SCHOOL_LONGITUDE = 116.880179;
   const MAX_DISTANCE = 500;
   
   if (!latitude || !longitude) {
