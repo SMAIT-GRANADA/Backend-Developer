@@ -10,7 +10,8 @@ const {
 const { 
   checkGeolocation,
   validatePhoto,
-  checkTeacherOrStudent
+  checkTeacherOrStudent,
+  checkAttendanceTime
 } = require('../middlewares/attendanceMiddleware');
 
 router.use(checkAuth);
@@ -20,6 +21,7 @@ router.post('/attendance/check-in',
   checkTeacherOrStudent,
   validatePhoto,
   checkGeolocation,
+  checkAttendanceTime,   // Menambahkan validasi waktu
   attendanceController.checkIn
 );
 

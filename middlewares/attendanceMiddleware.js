@@ -1,10 +1,12 @@
+const ATTENDANCE_START_HOUR = 6; // Jam 6 pagi
+const ATTENDANCE_LATE_HOUR = 7;  // Jam 7 pagi
+const ATTENDANCE_LATE_MINUTE = 30; // 30 menit
+const SCHOOL_LATITUDE = -1.248461;
+const SCHOOL_LONGITUDE = 116.880179;
+const MAX_DISTANCE = 500; // dalam meter
+
 const checkGeolocation = (req, res, next) => {
   const { latitude, longitude } = req.body;
-  
-  // Koordinat sekolah
-  const SCHOOL_LATITUDE = -1.248461;
-  const SCHOOL_LONGITUDE = 116.880179;
-  const MAX_DISTANCE = 500;
   
   if (!latitude || !longitude) {
     return res.status(400).json({
@@ -67,7 +69,7 @@ const validatePhoto = (req, res, next) => {
   next();
 };
 
-function checkTeacherOrStudent(req, res, next) {
+const checkTeacherOrStudent = (req, res, next) => {
   const userRoles = req.user.roles;
   
   if (!userRoles.includes('guru') && !userRoles.includes('siswa')) {
@@ -77,10 +79,49 @@ function checkTeacherOrStudent(req, res, next) {
     });
   }
   next();
-}
+};
+
+const checkAttendanceTime = (req, res, next) => {
+  const now = new Date();
+  const hour = now.getHours();
+
+  if (hour < ATTENDANCE_START_HOUR) {
+    return res.status(403).json({
+      status: false,
+      message: 'Absensi hanya dapat dilakukan mulai pukul 6 pagi'
+    });
+  }
+
+  req.isLate = (hour > ATTENDANCE_LATE_HOUR) || 
+               (hour === ATTENDANCE_LATE_HOUR && now.getMinutes() > ATTENDANCE_LATE_MINUTE);
+
+  next();
+};
+
+const checkLateStatus = (req, res, next) => {
+  const now = new Date();
+  const hour = now.getHours();
+  const minute = now.getMinutes();
+
+  req.attendanceStatus = {
+    isLate: (hour > ATTENDANCE_LATE_HOUR) || 
+            (hour === ATTENDANCE_LATE_HOUR && minute > ATTENDANCE_LATE_MINUTE),
+    time: {
+      hour,
+      minute
+    }
+  };
+
+  next();
+};
 
 module.exports = {
   checkGeolocation,
   validatePhoto,
-  checkTeacherOrStudent
+  checkTeacherOrStudent,
+  checkAttendanceTime,
+  checkLateStatus,
+  ATTENDANCE_START_HOUR,
+  ATTENDANCE_LATE_HOUR,
+  ATTENDANCE_LATE_MINUTE
 };

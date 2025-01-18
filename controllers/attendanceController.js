@@ -6,7 +6,14 @@ const checkIn = async (req, res) => {
     const userId = req.user.id;
     const { photoBase64, latitude, longitude } = req.body;
 
-    const attendance = await attendanceService.createAttendance({
+    if (!userId || !photoBase64 || !latitude || !longitude) {
+      return res.status(400).json({
+        status: false,
+        message: 'Semua field harus diisi'
+      });
+    }
+
+    const { attendance, message } = await attendanceService.createAttendance({
       userId,
       photoBase64,
       latitude,
@@ -15,7 +22,7 @@ const checkIn = async (req, res) => {
 
     return res.status(200).json({
       status: true,
-      message: 'Check in berhasil',
+      message: message,
       data: attendance
     });
 
@@ -23,7 +30,7 @@ const checkIn = async (req, res) => {
     console.error('Error in checkIn:', error);
     return res.status(500).json({
       status: false,
-      message: 'Terjadi kesalahan saat melakukan check in'
+      message: error.message || 'Terjadi kesalahan saat melakukan check in'
     });
   }
 };
@@ -42,8 +49,7 @@ const checkOut = async (req, res) => {
       });
     }
 
-    const attendance = await attendanceService.updateAttendance(existingAttendance.id, {
-      userId,
+    const { attendance, message } = await attendanceService.updateAttendance(existingAttendance.id, {
       photoBase64,
       latitude,
       longitude
@@ -51,7 +57,7 @@ const checkOut = async (req, res) => {
 
     return res.status(200).json({
       status: true,
-      message: 'Check out berhasil',
+      message: message,
       data: attendance
     });
 
@@ -59,7 +65,7 @@ const checkOut = async (req, res) => {
     console.error('Error in checkOut:', error);
     return res.status(500).json({
       status: false,
-      message: 'Terjadi kesalahan saat melakukan check out'
+      message: error.message || 'Terjadi kesalahan saat melakukan check out'
     });
   }
 };
@@ -271,6 +277,7 @@ const deleteAttendance = async (req, res) => {
   }
 };
 
+// Update Attendance Record
 const updateAttendanceRecord = async (req, res) => {
   try {
     const { id } = req.params;
@@ -308,6 +315,7 @@ const updateAttendanceRecord = async (req, res) => {
     });
   }
 };
+
 module.exports = {
   checkIn,
   checkOut,
