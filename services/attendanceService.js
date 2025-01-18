@@ -4,6 +4,10 @@ const { uploadPhotoToGCS, deletePhotoFromGCS } = require('../config/gcs');
 const { Parser } = require('json2csv');
 const XLSX = require('xlsx');
 
+const ATTENDANCE_START_HOUR = 6;
+const ATTENDANCE_LATE_HOUR = 7;
+const ATTENDANCE_LATE_MINUTE = 30;
+
 const validatePhotoBase64 = (photoBase64) => {
   if (!photoBase64) {
     throw new Error('Foto tidak boleh kosong');
@@ -17,10 +21,91 @@ const validatePhotoBase64 = (photoBase64) => {
   return matches[2];
 };
 
+const isWithinAttendanceHours = () => {
+  const now = new Date();
+  const hour = now.getHours();
+  return hour >= ATTENDANCE_START_HOUR;
+};
+
+const isLate = () => {
+  const now = new Date();
+  const hour = now.getHours();
+  const minute = now.getMinutes();
+  
+  return (hour > ATTENDANCE_LATE_HOUR) || 
+         (hour === ATTENDANCE_LATE_HOUR && minute > ATTENDANCE_LATE_MINUTE);
+};
+
+const getTodayAttendance = async (userId) => {
+  try {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+
+    return await prisma.attendance.findFirst({
+      where: {
+        userId,
+        checkInTime: {
+          gte: today,
+          lt: tomorrow
+        }
+      },
+      include: {
+        user: {
+          select: {
+            name: true,
+            roles: {
+              include: {
+                role: true
+              }
+            }
+          }
+        }
+      }
+    });
+  } catch (error) {
+    console.error('Error in getTodayAttendance:', error);
+    throw new Error('Gagal mengambil data attendance hari ini');
+  }
+};
+
+const generateAttendanceMessage = async (userId, type) => {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    include: {
+      roles: {
+        include: {
+          role: true
+        }
+      }
+    }
+  });
+
+  const isTeacher = user.roles.some(ur => ur.role.name === 'guru');
+  
+  if (type === 'checkin') {
+    if (isTeacher) {
+      return `Selamat datang, ${user.name}. Selamat menjalankan tugas dan Semoga hari ini berjalan lancar.`;
+    } else {
+      return `Selamat! Anda telah berhasil absen ${user.name}. Jangan pernah berhenti belajar karena selama kita hidup, ada selalu sesuatu yang baru untuk dipelajari :)`;
+    }
+  } else if (type === 'checkout' && isTeacher) {
+    return `Terima kasih, Ibu ${user.name}, atas kontribusi Anda hari ini. Selamat beristirahat!`;
+  }
+  
+  return 'Checkout berhasil';
+};
+
 const createAttendance = async (data) => {
   try {
     if (!data.userId || !data.latitude || !data.longitude) {
       throw new Error('Data attendance tidak lengkap');
+    }
+
+    if (!isWithinAttendanceHours()) {
+      throw new Error('Absensi hanya dapat dilakukan mulai pukul 6 pagi');
     }
 
     const existingAttendance = await getTodayAttendance(data.userId);
@@ -40,6 +125,9 @@ const createAttendance = async (data) => {
       throw new Error('Gagal mengunggah foto check-in');
     }
 
+    // Set status berdasarkan waktu
+    const status = isLate() ? 'telat' : 'hadir';
+
     const attendance = await prisma.attendance.create({
       data: {
         userId: data.userId,
@@ -47,7 +135,7 @@ const createAttendance = async (data) => {
         checkInPhotoUrl: photoUrl,
         checkInLatitude: data.latitude,
         checkInLongitude: data.longitude,
-        status: 'hadir'
+        status
       },
       include: {
         user: {
@@ -63,7 +151,9 @@ const createAttendance = async (data) => {
       }
     });
 
-    return attendance;
+    const message = await generateAttendanceMessage(data.userId, 'checkin');
+    return { attendance, message };
+
   } catch (error) {
     console.error('Error in createAttendance:', error);
     throw new Error(error.message || 'Terjadi kesalahan saat membuat attendance');
@@ -73,7 +163,10 @@ const createAttendance = async (data) => {
 const updateAttendance = async (id, data) => {
   try {
     const existingAttendance = await prisma.attendance.findUnique({
-      where: { id }
+      where: { id },
+      include: {
+        user: true
+      }
     });
 
     if (!existingAttendance) {
@@ -85,9 +178,9 @@ const updateAttendance = async (id, data) => {
     }
 
     let updateData = {};
+    let photoUrl;
 
     if (data.photoBase64 && data.latitude && data.longitude) {
-      let photoUrl;
       try {
         photoUrl = await uploadPhotoToGCS(data.photoBase64, existingAttendance.userId);
       } catch (uploadError) {
@@ -123,7 +216,9 @@ const updateAttendance = async (id, data) => {
       }
     });
 
-    return attendance;
+    const message = await generateAttendanceMessage(existingAttendance.userId, 'checkout');
+    return { attendance, message };
+
   } catch (error) {
     console.error('Error in updateAttendance:', error);
     throw new Error(error.message || 'Terjadi kesalahan saat update attendance');
@@ -167,41 +262,6 @@ const updateAttendanceStatus = async (id, updateData) => {
   } catch (error) {
     console.error('Error in updateAttendanceStatus:', error);
     throw new Error(error.message || 'Terjadi kesalahan saat update attendance');
-  }
-};
-
-const getTodayAttendance = async (userId) => {
-  try {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    
-    const tomorrow = new Date(today);
-    tomorrow.setDate(tomorrow.getDate() + 1);
-
-    return await prisma.attendance.findFirst({
-      where: {
-        userId,
-        checkInTime: {
-          gte: today,
-          lt: tomorrow
-        }
-      },
-      include: {
-        user: {
-          select: {
-            name: true,
-            roles: {
-              include: {
-                role: true
-              }
-            }
-          }
-        }
-      }
-    });
-  } catch (error) {
-    console.error('Error in getTodayAttendance:', error);
-    throw new Error('Gagal mengambil data attendance hari ini');
   }
 };
 
@@ -305,24 +365,12 @@ const getAttendanceStatistics = async (startDate, endDate) => {
 
     const statistics = {
       total: attendances.length,
-      onTime: 0,
-      late: 0,
-      checkoutComplete: 0,
-      byRole: {}
+      hadir: attendances.filter(a => a.status === 'hadir').length,
+      telat: attendances.filter(a => a.status === 'telat').length,
+      izin: attendances.filter(a => a.status === 'izin').length,
+      alpha: attendances.filter(a => a.status === 'alpha').length,
+      checkoutComplete: attendances.filter(a => a.checkOutTime).length
     };
-
-    attendances.forEach(attendance => {
-      attendance.user.roles.forEach(role => {
-        if (!statistics.byRole[role.name]) {
-          statistics.byRole[role.name] = 0;
-        }
-        statistics.byRole[role.name]++;
-      });
-
-      if (attendance.checkOutTime) {
-        statistics.checkoutComplete++;
-      }
-    });
 
     return statistics;
   } catch (error) {
@@ -330,6 +378,7 @@ const getAttendanceStatistics = async (startDate, endDate) => {
     throw new Error('Gagal mengambil statistik attendance');
   }
 };
+
 const exportAttendance = async (startDate, endDate, format = 'csv') => {
   try {
     const attendances = await prisma.attendance.findMany({
@@ -381,30 +430,23 @@ const exportAttendance = async (startDate, endDate, format = 'csv') => {
       const workbook = XLSX.utils.book_new();
       const worksheet = XLSX.utils.json_to_sheet(exportData);
 
-      // Set column widths
       const colWidths = [
-        { wch: 5 },  // ID
-        { wch: 12 }, // Tanggal
-        { wch: 25 }, // Nama
-        { wch: 30 }, // Email
-        { wch: 15 }, // Role
-        { wch: 10 }, // Status
-        { wch: 12 }, // Jam Masuk
-        { wch: 25 }, // Lokasi Masuk
-        { wch: 12 }, // Jam Keluar
-        { wch: 25 }, // Lokasi Keluar
+        { wch: 5 },
+        { wch: 12 },
+        { wch: 25 },
+        { wch: 30 },
+        { wch: 15 },
+        { wch: 10 },
+        { wch: 12 },
+        { wch: 25 },
+        { wch: 12 },
+        { wch: 25 },
       ];
       worksheet['!cols'] = colWidths;
 
       XLSX.utils.book_append_sheet(workbook, worksheet, 'Attendance Report');
       
-      const buffer = XLSX.write(workbook, { 
-        type: 'buffer', 
-        bookType: 'xlsx',
-        bookSST: false
-      });
-
-      return buffer;
+      return XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx', bookSST: false });
     }
   } catch (error) {
     console.error('Error in exportAttendance:', error);
@@ -437,7 +479,6 @@ const deleteAttendance = async (id) => {
         console.error('Error deleting check-out photo:', error);
       }
     }
-
     await prisma.attendance.delete({
       where: { id }
     });
@@ -458,5 +499,8 @@ module.exports = {
   getAttendanceReport,
   getAttendanceStatistics,
   exportAttendance,
-  deleteAttendance
+  deleteAttendance,
+  validatePhotoBase64,
+  isWithinAttendanceHours,
+  isLate
 };
