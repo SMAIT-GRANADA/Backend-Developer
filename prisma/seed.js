@@ -1,5 +1,10 @@
 const { PrismaClient } = require('@prisma/client');
+const bcrypt = require('bcryptjs');
 const prisma = new PrismaClient();
+
+async function hashPassword(password) {
+  return bcrypt.hash(password, 10);
+}
 
 async function main() {
   try {
@@ -13,6 +18,7 @@ async function main() {
     await prisma.academicRecord.deleteMany();
     await prisma.userRole.deleteMany();
     await prisma.superAdmin.deleteMany();
+    await prisma.token.deleteMany();
     await prisma.role.deleteMany();
     await prisma.user.deleteMany();
 
@@ -49,12 +55,10 @@ async function main() {
         }
       })
     ]);
-
-    // Create Super Admin User
     const superAdminUser = await prisma.user.create({
       data: {
         username: 'superadmin',
-        password: 'superadmin123',
+        password: await hashPassword('superadmin123'),
         name: 'Super Admin',
         email: 'superadmin@granada.sch.id',
         roles: {
@@ -72,11 +76,11 @@ async function main() {
       }
     });
 
-    // Create Admin User
+    // Create Admin User dengan password yang di-hash
     const adminUser = await prisma.user.create({
       data: {
         username: 'admin',
-        password: 'admin123',
+        password: await hashPassword('admin123'),
         name: 'Admin User',
         email: 'admin@granada.sch.id',
         roles: {
@@ -87,12 +91,12 @@ async function main() {
       }
     });
 
-    // Create Teacher Users
+    // Create Teacher Users dengan password yang di-hash
     const teachers = await Promise.all([
       prisma.user.create({
         data: {
           username: 'guru1',
-          password: 'guru123',
+          password: await hashPassword('guru123'),
           name: 'Ahmad Teacher',
           email: 'ahmad@granada.sch.id',
           roles: {
@@ -105,7 +109,7 @@ async function main() {
       prisma.user.create({
         data: {
           username: 'guru2',
-          password: 'guru123',
+          password: await hashPassword('guru123'),
           name: 'Siti Teacher',
           email: 'siti@granada.sch.id',
           roles: {
@@ -117,12 +121,12 @@ async function main() {
       })
     ]);
 
-    // Create Student Users
+    // Create Student Users dengan password yang di-hash
     const students = await Promise.all([
       prisma.user.create({
         data: {
           username: 'siswa1',
-          password: 'siswa123',
+          password: await hashPassword('siswa123'),
           name: 'Deni Student',
           email: 'deni@student.granada.sch.id',
           roles: {
@@ -135,7 +139,7 @@ async function main() {
       prisma.user.create({
         data: {
           username: 'siswa2',
-          password: 'siswa123',
+          password: await hashPassword('siswa123'),
           name: 'Rina Student',
           email: 'rina@student.granada.sch.id',
           roles: {
@@ -173,17 +177,18 @@ async function main() {
       }
     });
 
-    // Create Sample Attendance Records
+    // Create Sample Attendance Records dengan tanggal yang lebih realistis
+    const today = new Date();
     await Promise.all(
       teachers.map(teacher =>
         prisma.attendance.create({
           data: {
             userId: teacher.id,
-            checkInTime: new Date(),
+            checkInTime: new Date(today.setHours(7, 30, 0)), // Set waktu masuk jam 7:30
             checkInPhotoUrl: '/uploads/attendance/checkin.jpg',
             checkInLatitude: -0.457833,
             checkInLongitude: 117.1259754,
-            checkOutTime: new Date(),
+            checkOutTime: new Date(today.setHours(16, 0, 0)), // Set waktu pulang jam 16:00
             checkOutPhotoUrl: '/uploads/attendance/checkout.jpg',
             checkOutLatitude: -0.457833,
             checkOutLongitude: 117.1259754,
@@ -227,14 +232,15 @@ async function main() {
       )
     );
 
-    // Create Sample Salary Slips
+    // Create Sample Salary Slips dengan periode yang lebih realistis
+    const currentMonth = new Date();
     await Promise.all(
       teachers.map(teacher =>
         prisma.salarySlip.create({
           data: {
             teacherId: teacher.id,
             slipImageUrl: '/uploads/salary/slip-januari-2024.pdf',
-            period: new Date(),
+            period: currentMonth,
             uploadedBy: adminUser.id
           }
         })

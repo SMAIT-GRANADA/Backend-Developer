@@ -1,5 +1,7 @@
 const express = require("express");
 const dotenv = require("dotenv");
+dotenv.config();
+
 const session = require("express-session");
 const pgSession = require("connect-pg-simple")(session);
 const { Pool } = require("pg");
@@ -9,8 +11,6 @@ const userRouter = require("./routes/userRoutes");
 const academicRouter = require("./routes/academicRoutes");
 const attendanceRouter = require("./routes/attendanceRoutes");
 const newsRouter = require("./routes/newsRoutes");
-
-dotenv.config();
 
 const app = express();
 
