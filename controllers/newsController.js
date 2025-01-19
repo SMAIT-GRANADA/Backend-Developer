@@ -1,47 +1,13 @@
 const newsService = require("../services/newsService");
 
-async function createNews(req, res) {
-  try {
-    const { title, description, isPublished } = req.body;
-    const files = req.files;
-
-    if (!title) {
-      return res.status(400).json({
-        status: false,
-        message: "Judul berita harus diisi",
-      });
-    }
-
-    const result = await newsService.createNews(
-      {
-        title,
-        description,
-        superAdminId: req.user.id,
-        isPublished: isPublished === "true" || isPublished === true,
-      },
-      files
-    );
-
-    if (!result.status) {
-      return res.status(400).json(result);
-    }
-
-    return res.status(201).json(result);
-  } catch (error) {
-    console.error("Error in createNews controller:", error);
-    return res.status(500).json({
-      status: false,
-      message: "Terjadi kesalahan internal server",
-    });
-  }
-}
-
 async function getAllNews(req, res) {
   try {
     const result = await newsService.getAllNews(req.query);
-
-    if (!result.status) {
-      return res.status(400).json(result);
+    if (!result) {
+      return res.status(500).json({
+        status: false,
+        message: "Gagal mengambil data berita" 
+      });
     }
 
     return res.status(200).json(result);
@@ -49,7 +15,7 @@ async function getAllNews(req, res) {
     console.error("Error in getAllNews controller:", error);
     return res.status(500).json({
       status: false,
-      message: "Terjadi kesalahan internal server",
+      message: "Terjadi kesalahan internal server"
     });
   }
 }
@@ -61,14 +27,17 @@ async function getNewsById(req, res) {
     if (!id || isNaN(id)) {
       return res.status(400).json({
         status: false,
-        message: "ID tidak valid",
+        message: "ID tidak valid"
       });
     }
 
-    const result = await newsService.getNewsById(id);
+    const result = await newsService.getNewsById(id, req.user || null);
 
-    if (!result.status) {
-      return res.status(404).json(result);
+    if (!result || !result.status) {
+      return res.status(404).json({
+        status: false,
+        message: "Berita tidak ditemukan"
+      });
     }
 
     return res.status(200).json(result);
@@ -76,7 +45,40 @@ async function getNewsById(req, res) {
     console.error("Error in getNewsById controller:", error);
     return res.status(500).json({
       status: false,
-      message: "Terjadi kesalahan internal server",
+      message: "Terjadi kesalahan internal server"
+    });
+  }
+}
+
+async function createNews(req, res) {
+  try {
+    const { title, description, isPublished } = req.body;
+    const files = req.files;
+
+    if (!title) {
+      return res.status(400).json({
+        status: false,
+        message: "Judul berita harus diisi"
+      });
+    }
+
+    const result = await newsService.createNews({
+      title,
+      description,
+      superAdminId: req.user.id,
+      isPublished: isPublished === "true" || isPublished === true
+    }, files);
+
+    if (!result.status) {
+      return res.status(400).json(result);
+    }
+
+    return res.status(201).json(result);
+  } catch (error) {
+    console.error("Error in createNews controller:", error);
+    return res.status(500).json({
+      status: false,
+      message: "Terjadi kesalahan internal server"
     });
   }
 }
@@ -90,26 +92,22 @@ async function updateNews(req, res) {
     if (!id || isNaN(id)) {
       return res.status(400).json({
         status: false,
-        message: "ID tidak valid",
+        message: "ID tidak valid"
       });
     }
 
     if (!title) {
       return res.status(400).json({
         status: false,
-        message: "Judul berita harus diisi",
+        message: "Judul berita harus diisi"
       });
     }
 
-    const result = await newsService.updateNews(
-      id,
-      {
-        title,
-        description,
-        isPublished: isPublished === "true" || isPublished === true,
-      },
-      files
-    );
+    const result = await newsService.updateNews(id, {
+      title,
+      description,
+      isPublished: isPublished === "true" || isPublished === true
+    }, files);
 
     if (!result.status) {
       return res.status(404).json(result);
@@ -120,7 +118,7 @@ async function updateNews(req, res) {
     console.error("Error in updateNews controller:", error);
     return res.status(500).json({
       status: false,
-      message: "Terjadi kesalahan internal server",
+      message: "Terjadi kesalahan internal server"
     });
   }
 }
@@ -132,7 +130,7 @@ async function deleteNews(req, res) {
     if (!id || isNaN(id)) {
       return res.status(400).json({
         status: false,
-        message: "ID tidak valid",
+        message: "ID tidak valid"
       });
     }
 
@@ -147,7 +145,7 @@ async function deleteNews(req, res) {
     console.error("Error in deleteNews controller:", error);
     return res.status(500).json({
       status: false,
-      message: "Terjadi kesalahan internal server",
+      message: "Terjadi kesalahan internal server"
     });
   }
 }
@@ -159,7 +157,7 @@ async function deleteNewsMedia(req, res) {
     if (!mediaId || isNaN(mediaId)) {
       return res.status(400).json({
         status: false,
-        message: "ID media tidak valid",
+        message: "ID media tidak valid"
       });
     }
 
@@ -174,16 +172,16 @@ async function deleteNewsMedia(req, res) {
     console.error("Error in deleteNewsMedia controller:", error);
     return res.status(500).json({
       status: false,
-      message: "Terjadi kesalahan internal server",
+      message: "Terjadi kesalahan internal server"
     });
   }
 }
 
 module.exports = {
-  createNews,
   getAllNews,
   getNewsById,
+  createNews,
   updateNews,
   deleteNews,
-  deleteNewsMedia,
+  deleteNewsMedia
 };

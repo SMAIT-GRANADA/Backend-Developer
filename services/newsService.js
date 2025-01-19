@@ -23,7 +23,7 @@ async function createNews(data, files) {
           data: {
             newsId: news.id,
             mediaType: file.mimetype.startsWith("image/") ? "image" : "video",
-            mediaUrl: file.path.replace(/\\/g, "/"), // Normalize path for Windows
+            mediaUrl: file.path.replace(/\\/g, "/"),
           },
         });
       });
@@ -54,13 +54,10 @@ async function createNews(data, files) {
 
 async function getAllNews(queryParams = {}) {
   try {
-    const { page = 1, limit = 10, isPublished } = queryParams;
+    const { page = 1, limit = 10 } = queryParams;
     const skip = (page - 1) * Number(limit);
 
-    const where = {};
-    if (isPublished !== undefined) {
-      where.isPublished = isPublished === "true";
-    }
+    const where = { isPublished: true };
 
     const [news, total] = await Promise.all([
       prisma.news.findMany({
@@ -106,7 +103,7 @@ async function getAllNews(queryParams = {}) {
   }
 }
 
-async function getNewsById(id) {
+async function getNewsById(id, user = null) {
   try {
     const news = await prisma.news.findUnique({
       where: { id: Number(id) },
@@ -131,6 +128,12 @@ async function getNewsById(id) {
         message: "Berita tidak ditemukan",
       };
     }
+    if (!user && !news.isPublished) {
+      return {
+        status: false,
+        message: "Berita tidak ditemukan",
+      };
+    }
 
     return {
       status: true,
@@ -149,6 +152,7 @@ async function updateNews(id, data, files) {
   try {
     const existingNews = await prisma.news.findUnique({
       where: { id: Number(id) },
+      include: { media: true },
     });
 
     if (!existingNews) {
@@ -166,6 +170,7 @@ async function updateNews(id, data, files) {
         isPublished: data.isPublished || false,
         publishedAt: data.isPublished ? new Date() : null,
       },
+      include: { media: true },
     });
 
     if (files && files.media) {
@@ -177,7 +182,7 @@ async function updateNews(id, data, files) {
           data: {
             newsId: updatedNews.id,
             mediaType: file.mimetype.startsWith("image/") ? "image" : "video",
-            mediaUrl: file.path,
+            mediaUrl: file.path.replace(/\\/g, "/"),
           },
         });
       });
@@ -185,10 +190,15 @@ async function updateNews(id, data, files) {
       await Promise.all(mediaPromises);
     }
 
+    const finalNews = await prisma.news.findUnique({
+      where: { id: Number(id) },
+      include: { media: true },
+    });
+
     return {
       status: true,
       message: "Berita berhasil diperbarui",
-      data: updatedNews,
+      data: finalNews,
     };
   } catch (error) {
     console.error("Error in updateNews service:", error);
@@ -201,6 +211,17 @@ async function updateNews(id, data, files) {
 
 async function deleteNews(id) {
   try {
+    const existingNews = await prisma.news.findUnique({
+      where: { id: Number(id) },
+    });
+
+    if (!existingNews) {
+      return {
+        status: false,
+        message: "Berita tidak ditemukan",
+      };
+    }
+
     await prisma.newsMedia.deleteMany({
       where: { newsId: Number(id) },
     });
@@ -224,6 +245,17 @@ async function deleteNews(id) {
 
 async function deleteNewsMedia(mediaId) {
   try {
+    const media = await prisma.newsMedia.findUnique({
+      where: { id: Number(mediaId) },
+    });
+
+    if (!media) {
+      return {
+        status: false,
+        message: "Media tidak ditemukan",
+      };
+    }
+
     const deletedMedia = await prisma.newsMedia.delete({
       where: { id: Number(mediaId) },
     });
