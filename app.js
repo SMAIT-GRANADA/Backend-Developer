@@ -31,25 +31,24 @@ app.use(
 app.use(express.json({ limit: "5mb" }));
 app.use(express.urlencoded({ extended: true, limit: "5mb" }));
 
-app.use(
-  session({
-    store: new pgSession({
-      pool,
-      tableName: "sessions",
-      createTableIfMissing: true,
-    }),
-    secret: authConfig.session.secret,
-    resave: false,
-    saveUninitialized: false,
-    cookie: {
-      secure: process.env.NODE_ENV === "production",
-      httpOnly: true,
-      maxAge: authConfig.session.cookie.maxAge,
-      sameSite: "strict",
-    },
-    name: "sessionId",
-  })
-);
+const sessionConfig = {
+  store: new pgSession({
+    pool,
+    tableName: "sessions",
+    createTableIfMissing: true,
+  }),
+  secret: process.env.SESSION_SECRET || authConfig.session.secret,
+  resave: false,
+  saveUninitialized: false,
+  cookie: {
+    secure: process.env.NODE_ENV === "production",
+    httpOnly: true,
+    maxAge: parseInt(process.env.SESSION_MAX_AGE) || authConfig.session.cookie.maxAge,
+    sameSite: "strict"
+  },
+  name: "sessionId"
+};
+app.use(session(sessionConfig));
 
 // Global error handler
 app.use((err, req, res, next) => {
