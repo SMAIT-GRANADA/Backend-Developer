@@ -4,6 +4,13 @@ const prisma = new PrismaClient();
 const authConfig = require("../config/auth");
 
 function generateTokens(user) {
+  if (!authConfig.accessToken.secret) {
+    throw new Error('JWT_ACCESS_SECRET tidak dikonfigurasi');
+  }
+  if (!authConfig.refreshToken.secret) {
+    throw new Error('JWT_REFRESH_SECRET tidak dikonfigurasi');
+  }
+
   const accessToken = jwt.sign(
     {
       id: user.id,
