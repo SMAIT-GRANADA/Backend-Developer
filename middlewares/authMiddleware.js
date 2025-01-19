@@ -1,6 +1,32 @@
 const jwt = require('jsonwebtoken');
 const authService = require('../services/authService');
 
+async function optionalAuth(req, res, next) {
+  try {
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      req.user = null;
+      return next();
+    }
+
+    const token = authHeader.split(' ')[1];
+
+    try {
+      const decoded = await authService.verifyAccessToken(token);
+      req.user = {
+        id: decoded.id,
+        roles: decoded.roles,
+      };
+    } catch (error) {
+      req.user = null;
+    }
+    next();
+  } catch (error) {
+    req.user = null;
+    next();
+  }
+}
+
 async function checkAuth(req, res, next) {
   try {
     if (!req.session.user) {
@@ -215,6 +241,7 @@ function isParent(req, res, next) {
 }
 
 module.exports = {
+  optionalAuth,
   checkAuth,
   checkRole,
   academicAccess,

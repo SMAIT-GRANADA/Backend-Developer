@@ -14,7 +14,6 @@ router.post(
   multerHandler,
   newsController.createNews
 );
-
 router.put(
   "/news/:id",
   checkAuth,
@@ -22,14 +21,12 @@ router.put(
   multerHandler,
   newsController.updateNews
 );
-
-router.delete("/news/:id", checkAuth, isSuperAdmin, newsController.deleteNews);
-
 router.delete(
   "/news/media/:mediaId",
   checkAuth,
   isSuperAdmin,
   newsController.deleteNewsMedia
 );
+router.delete("/news/:id", checkAuth, isSuperAdmin, newsController.deleteNews);
 
 module.exports = router;

@@ -27,6 +27,13 @@ app.use(
   })
 );
 
+app.use((req, res, next) => {
+  if (req.method === 'OPTIONS') {
+    return res.sendStatus(200);
+  }
+  next();
+});
+
 // Increase payload limit for base64 images
 app.use(express.json({ limit: "5mb" }));
 app.use(express.urlencoded({ extended: true, limit: "5mb" }));
@@ -48,7 +55,21 @@ const sessionConfig = {
   },
   name: "sessionId"
 };
+
 app.use(session(sessionConfig));
+
+// Routes
+const routers = [newsRouter, userRouter, academicRouter, attendanceRouter];
+routers.forEach((router) => app.use("/api/v1", router));
+
+
+// Handle 404
+app.use((req, res) => {
+  res.status(404).json({
+    status: false,
+    message: "Route tidak ditemukan",
+  });
+});
 
 // Global error handler
 app.use((err, req, res, next) => {
@@ -59,21 +80,8 @@ app.use((err, req, res, next) => {
   });
 });
 
-// Routes
-const routers = [userRouter, academicRouter, attendanceRouter, newsRouter];
-routers.forEach((router) => app.use("/api/v1", router));
-
-// Handle 404
-app.use((req, res) => {
-  res.status(404).json({
-    status: false,
-    message: "Route tidak ditemukan",
-  });
-});
-
 const PORT = process.env.PORT || 8080;
 
-// Start server
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);
 });
