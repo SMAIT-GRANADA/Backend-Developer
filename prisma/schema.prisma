@@ -21,6 +21,7 @@ model User {
   name      String
   email     String    @unique
   isActive  Boolean   @default(true)
+  tokens        Token[]
   createdAt DateTime  @default(now()) @map("created_at")
   updatedAt DateTime? @updatedAt @map("updated_at")
 
@@ -35,6 +36,18 @@ model User {
   uploadsSlips  SalarySlip[]    @relation("AdminUploads")
 
   @@map("users")
+}
+model Token {
+  id           Int       @id @default(autoincrement())
+  userId       Int       @map("user_id")
+  refreshToken String    @unique @map("refresh_token")
+  isValid      Boolean   @default(true)
+  expiresAt    DateTime  @map("expires_at")
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime? @updatedAt @map("updated_at")
+  user         User      @relation(fields: [userId], references: [id])
+
+  @@map("tokens")
 }
 
 model Role {

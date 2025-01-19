@@ -21,7 +21,7 @@ router.post('/attendance/check-in',
   checkTeacherOrStudent,
   validatePhoto,
   checkGeolocation,
-  checkAttendanceTime,   // Menambahkan validasi waktu
+  checkAttendanceTime,
   attendanceController.checkIn
 );
 

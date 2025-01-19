@@ -1,6 +1,7 @@
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
 
 async function createUser(userData) {
   try {
@@ -35,6 +36,7 @@ async function createUser(userData) {
       throw new Error('Email already exists');
     }
 
+    // Hash password sebelum disimpan
     const hashedPassword = await bcrypt.hash(userData.password, 10);
 
     // Create user with role
@@ -63,8 +65,11 @@ async function createUser(userData) {
       }
     });
 
-    delete newUser.password;
-    return newUser;
+    // Remove password from response
+    const userResponse = { ...newUser };
+    delete userResponse.password;
+    
+    return userResponse;
 
   } catch (error) {
     if (error.code === 'P2002') {
@@ -119,7 +124,7 @@ async function getUserById(id) {
     });
     
     if (!user) {
-      throw new Error('User not found');
+      throw new Error('User tidak ditemukan');
     }
     
     return user;
@@ -135,7 +140,7 @@ async function updateUser(id, userData) {
     });
 
     if (!existingUser) {
-      throw new Error('User not found');
+      throw new Error('User tidak ditemukan');
     }
 
     if (userData.username) {
@@ -150,7 +155,6 @@ async function updateUser(id, userData) {
       }
     }
 
-    // Check email uniqueness if being updated
     if (userData.email) {
       const existingEmail = await prisma.user.findFirst({
         where: {
@@ -177,10 +181,13 @@ async function updateUser(id, userData) {
       });
       delete userData.roleId;
     }
+
+    // Hash password jika ada update password
     if (userData.password) {
       userData.password = await bcrypt.hash(userData.password, 10);
     }
 
+    // Update user
     const updatedUser = await prisma.user.update({
       where: { id: Number(id) },
       data: userData,
@@ -199,6 +206,19 @@ async function updateUser(id, userData) {
         }
       }
     });
+
+    // Invalidate semua token jika password atau status user diubah
+    if (userData.password || userData.hasOwnProperty('isActive')) {
+      await prisma.token.updateMany({
+        where: { 
+          userId: Number(id),
+          isValid: true
+        },
+        data: { 
+          isValid: false
+        }
+      });
+    }
 
     return updatedUser;
   } catch (error) {
@@ -220,7 +240,7 @@ async function deleteUser(id) {
     });
 
     if (!existingUser) {
-      throw new Error('User not found');
+      throw new Error('User tidak ditemukan');
     }
 
     // Check if user is a superadmin
@@ -229,6 +249,16 @@ async function deleteUser(id) {
     }
 
     await prisma.$transaction([
+      // Invalidate semua token user
+      prisma.token.updateMany({
+        where: { 
+          userId: Number(id),
+          isValid: true
+        },
+        data: { 
+          isValid: false 
+        }
+      }),
       prisma.userRole.deleteMany({
         where: { userId: Number(id) }
       }),
@@ -254,6 +284,9 @@ async function deleteUser(id) {
           ]
         }
       }),
+      prisma.token.deleteMany({
+        where: { userId: Number(id) }
+      }),
       prisma.user.delete({
         where: { id: Number(id) }
       })
@@ -265,10 +298,16 @@ async function deleteUser(id) {
   }
 }
 
+// Fungsi untuk validasi password
+async function validatePassword(inputPassword, hashedPassword) {
+  return await bcrypt.compare(inputPassword, hashedPassword);
+}
+
 module.exports = {
   createUser,
   getAllUsers,
   getUserById,
   updateUser,
-  deleteUser
+  deleteUser,
+  validatePassword
 };
