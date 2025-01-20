@@ -52,7 +52,7 @@ model Token {
 
 model Role {
   id          Int       @id @default(autoincrement())
-  name        String    // superadmin|admin|guru|ortu|siswa
+  name        String
   description String?
   createdAt   DateTime  @default(now()) @map("created_at")
   updatedAt   DateTime? @updatedAt @map("updated_at")
@@ -104,8 +104,9 @@ model News {
 model NewsMedia {
   id        Int       @id @default(autoincrement())
   newsId    Int       @map("news_id")
-  mediaType String    @map("media_type") // image|video
+  mediaType String    @map("media_type")
   mediaUrl  String    @map("media_url")
+  fileId    String?   @map("file_id")
   createdAt DateTime  @default(now()) @map("created_at")
   updatedAt DateTime? @updatedAt @map("updated_at")
   news      News      @relation(fields: [newsId], references: [id])

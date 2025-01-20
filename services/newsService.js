@@ -1,4 +1,5 @@
 const { PrismaClient } = require("@prisma/client");
+const { uploadToImageKit } = require("../libs/imagekit");
 const prisma = new PrismaClient();
 
 async function createNews(data, files) {
@@ -14,16 +15,15 @@ async function createNews(data, files) {
     });
 
     if (files && files.media) {
-      const mediaFiles = Array.isArray(files.media)
-        ? files.media
-        : [files.media];
+      const mediaFiles = Array.isArray(files.media) ? files.media : [files.media];
 
-      const mediaPromises = mediaFiles.map((file) => {
+      const mediaPromises = mediaFiles.map(async (file) => {
+        const imageKitResponse = await uploadToImageKit(file);
         return prisma.newsMedia.create({
           data: {
             newsId: news.id,
             mediaType: file.mimetype.startsWith("image/") ? "image" : "video",
-            mediaUrl: file.path.replace(/\\/g, "/"),
+            mediaUrl: imageKitResponse.url,
           },
         });
       });
@@ -51,14 +51,11 @@ async function createNews(data, files) {
     };
   }
 }
-
 async function getAllNews(queryParams = {}) {
   try {
     const { page = 1, limit = 10 } = queryParams;
     const skip = (page - 1) * Number(limit);
-
-    const where = { isPublished: true };
-
+    const where = {};
     const [news, total] = await Promise.all([
       prisma.news.findMany({
         skip,
@@ -99,6 +96,65 @@ async function getAllNews(queryParams = {}) {
     return {
       status: false,
       message: "Gagal mengambil data berita",
+    };
+  }
+}
+async function updateNews(id, data, files) {
+  try {
+    const existingNews = await prisma.news.findUnique({
+      where: { id: Number(id) },
+      include: { media: true },
+    });
+
+    if (!existingNews) {
+      return {
+        status: false,
+        message: "Berita tidak ditemukan",
+      };
+    }
+    const updatedNews = await prisma.news.update({
+      where: { id: Number(id) },
+      data: {
+        title: data.title,
+        description: data.description,
+        isPublished: data.isPublished || false,
+        publishedAt: data.isPublished ? new Date() : null,
+      },
+      include: { media: true },
+    });
+
+    if (files && files.media) {
+      const mediaFiles = Array.isArray(files.media) ? files.media : [files.media];
+      
+      const mediaPromises = mediaFiles.map(async (file) => {
+        const imageKitResponse = await uploadToImageKit(file);
+        return prisma.newsMedia.create({
+          data: {
+            newsId: updatedNews.id,
+            mediaType: file.mimetype.startsWith("image/") ? "image" : "video",
+            mediaUrl: imageKitResponse.url,
+            fileId: imageKitResponse.fileId
+          },
+        });
+      });
+
+      await Promise.all(mediaPromises);
+    }
+    const finalNews = await prisma.news.findUnique({
+      where: { id: Number(id) },
+      include: { media: true },
+    });
+
+    return {
+      status: true,
+      message: "Berita berhasil diperbarui",
+      data: finalNews,
+    };
+  } catch (error) {
+    console.error("Error in updateNews service:", error);
+    return {
+      status: false,
+      message: "Gagal memperbarui berita",
     };
   }
 }
