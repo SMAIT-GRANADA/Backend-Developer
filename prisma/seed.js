@@ -21,6 +21,214 @@ async function main() {
     await prisma.token.deleteMany();
     await prisma.role.deleteMany();
     await prisma.user.deleteMany();
+    await prisma.staff.deleteMany();
+
+    // Data Staff
+    const staffData = [
+      {
+        name: "Wahyu",
+        position: "Bimbingan Konseling",
+        imageUrl:
+          "https://ik.imagekit.io/wahyup/Foto%20Guru%20SMA%20IT%20Granada/DSC011238.webp?updatedAt=1737227693278",
+      },
+      {
+        name: "Wahyu",
+        position: "Bimbingan Konseling",
+        imageUrl:
+          "https://ik.imagekit.io/wahyup/Foto%20Guru%20SMA%20IT%20Granada/DSC288.webp?updatedAt=1737227692822",
+      },
+      {
+        name: "Wahyu",
+        position: "Bimbingan Konseling",
+        imageUrl:
+          "https://ik.imagekit.io/wahyup/Foto%20Guru%20SMA%20IT%20Granada/DSC0131900.webp?updatedAt=1737227690617",
+      },
+      {
+        name: "Wahyu",
+        position: "Bimbingan Konseling",
+        imageUrl:
+          "https://ik.imagekit.io/wahyup/Foto%20Guru%20SMA%20IT%20Granada/DSC0127134.webp?updatedAt=1737227687042",
+      },
+      {
+        name: "Wahyu",
+        position: "Bimbingan Konseling",
+        imageUrl:
+          "https://ik.imagekit.io/wahyup/Foto%20Guru%20SMA%20IT%20Granada/DSC012830.webp?updatedAt=1737227686998",
+      },
+      {
+        name: "Wahyu",
+        position: "Bimbingan Konseling",
+        imageUrl:
+          "https://ik.imagekit.io/wahyup/Foto%20Guru%20SMA%20IT%20Granada/DSC012031.webp?updatedAt=1737227686951",
+      },
+      {
+        name: "Wahyu",
+        position: "Bimbingan Konseling",
+        imageUrl:
+          "https://ik.imagekit.io/wahyup/Foto%20Guru%20SMA%20IT%20Granada/DSC012522.webp?updatedAt=1737227686912",
+      },
+      {
+        name: "Wahyu",
+        position: "Bimbingan Konseling",
+        imageUrl:
+          "https://ik.imagekit.io/wahyup/Foto%20Guru%20SMA%20IT%20Granada/DSC0124223.webp?updatedAt=1737227686871",
+      },
+      {
+        name: "Wahyu",
+        position: "Bimbingan Konseling",
+        imageUrl:
+          "https://ik.imagekit.io/wahyup/Foto%20Guru%20SMA%20IT%20Granada/DSC0121234.webp?updatedAt=1737227686787",
+      },
+      {
+        name: "Wahyu",
+        position: "Bimbingan Konseling",
+        imageUrl:
+          "https://ik.imagekit.io/wahyup/Foto%20Guru%20SMA%20IT%20Granada/DSC0112293.webp?updatedAt=1737227686707",
+      },
+      {
+        name: "Wahyu",
+        position: "Bimbingan Konseling",
+        imageUrl:
+          "https://ik.imagekit.io/wahyup/Foto%20Guru%20SMA%20IT%20Granada/DSC019231.webp?updatedAt=1737227686653",
+      },
+      {
+        name: "Wahyu",
+        position: "Bimbingan Konseling",
+        imageUrl:
+          "https://ik.imagekit.io/wahyup/Foto%20Guru%20SMA%20IT%20Granada/DSC013103.webp?updatedAt=1737227686671",
+      },
+      {
+        name: "Wahyu",
+        position: "Bimbingan Konseling",
+        imageUrl:
+          "https://ik.imagekit.io/wahyup/Foto%20Guru%20SMA%20IT%20Granada/DSC0112297.webp?updatedAt=1737227685346",
+      },
+      {
+        name: "Wahyu",
+        position: "Bimbingan Konseling",
+        imageUrl:
+          "https://ik.imagekit.io/wahyup/Foto%20Guru%20SMA%20IT%20Granada/DSC012.webp?updatedAt=1737226372561",
+      },
+      {
+        name: "Wahyu",
+        position: "Bimbingan Konseling",
+        imageUrl:
+          "https://ik.imagekit.io/wahyup/Foto%20Guru%20SMA%20IT%20Granada/DSC06.webp?updatedAt=1737226372541",
+      },
+      {
+        name: "Wahyu",
+        position: "Bimbingan Konseling",
+        imageUrl:
+          "https://ik.imagekit.io/wahyup/Foto%20Guru%20SMA%20IT%20Granada/DSC12.webp?updatedAt=1737226372158",
+      },
+      {
+        name: "Wahyu",
+        position: "Bimbingan Konseling",
+        imageUrl:
+          "https://ik.imagekit.io/wahyup/Foto%20Guru%20SMA%20IT%20Granada/DS1179.webp?updatedAt=1737226371944",
+      },
+      {
+        name: "Wahyu",
+        position: "Bimbingan Konseling",
+        imageUrl:
+          "https://ik.imagekit.io/wahyup/Foto%20Guru%20SMA%20IT%20Granada/DSC011.webp?updatedAt=1737226371931",
+      },
+      {
+        name: "Wahyu",
+        position: "Bimbingan Konseling",
+        imageUrl:
+          "https://ik.imagekit.io/wahyup/Foto%20Guru%20SMA%20IT%20Granada/DSC4.webp?updatedAt=1737226371900",
+      },
+      {
+        name: "Wahyu",
+        position: "Bimbingan Konseling",
+        imageUrl:
+          "https://ik.imagekit.io/wahyup/Foto%20Guru%20SMA%20IT%20Granada/DSC00.webp?updatedAt=1737226371667",
+      },
+      {
+        name: "Wahyu",
+        position: "Bimbingan Konseling",
+        imageUrl:
+          "https://ik.imagekit.io/wahyup/Foto%20Guru%20SMA%20IT%20Granada/DS204.webp?updatedAt=1737226371424",
+      },
+      {
+        name: "Wahyu",
+        position: "Bimbingan Konseling",
+        imageUrl:
+          "https://ik.imagekit.io/wahyup/Foto%20Guru%20SMA%20IT%20Granada/DSC01.webp?updatedAt=1737226368096",
+      },
+      {
+        name: "Wahyu",
+        position: "Bimbingan Konseling",
+        imageUrl:
+          "https://ik.imagekit.io/wahyup/Foto%20Guru%20SMA%20IT%20Granada/D3.webp?updatedAt=1737226363412",
+      },
+      {
+        name: "Wahyu",
+        position: "Bimbingan Konseling",
+        imageUrl:
+          "https://ik.imagekit.io/wahyup/Foto%20Guru%20SMA%20IT%20Granada/DSC0122.webp?updatedAt=1737226363375",
+      },
+      {
+        name: "Wahyu",
+        position: "Bimbingan Konseling",
+        imageUrl:
+          "https://ik.imagekit.io/wahyup/Foto%20Guru%20SMA%20IT%20Granada/DSC01112.webp?updatedAt=1737226363479",
+      },
+      {
+        name: "Wahyu",
+        position: "Bimbingan Konseling",
+        imageUrl:
+          "https://ik.imagekit.io/wahyup/Foto%20Guru%20SMA%20IT%20Granada/DSC015.webp?updatedAt=1737226363477",
+      },
+      {
+        name: "Wahyu",
+        position: "Bimbingan Konseling",
+        imageUrl:
+          "https://ik.imagekit.io/wahyup/Foto%20Guru%20SMA%20IT%20Granada/DSC266.webp?updatedAt=1737226363274",
+      },
+      {
+        name: "Wahyu",
+        position: "Bimbingan Konseling",
+        imageUrl:
+          "https://ik.imagekit.io/wahyup/Foto%20Guru%20SMA%20IT%20Granada/DSC0206.webp?updatedAt=1737226363014",
+      },
+      {
+        name: "Wahyu",
+        position: "Bimbingan Konseling",
+        imageUrl:
+          "https://ik.imagekit.io/wahyup/Foto%20Guru%20SMA%20IT%20Granada/DS.webp?updatedAt=1737226362754",
+      },
+      {
+        name: "Wahyu",
+        position: "Bimbingan Konseling",
+        imageUrl:
+          "https://ik.imagekit.io/wahyup/Foto%20Guru%20SMA%20IT%20Granada/12.webp?updatedAt=1737226362700",
+      },
+      {
+        name: "Wahyu",
+        position: "Bimbingan Konseling",
+        imageUrl:
+          "https://ik.imagekit.io/wahyup/Foto%20Guru%20SMA%20IT%20Granada/1.webp?updatedAt=1737226362683",
+      },
+      {
+        name: "Wahyu",
+        position: "Bimbingan Konseling",
+        imageUrl:
+          "https://ik.imagekit.io/wahyup/Foto%20Guru%20SMA%20IT%20Granada/DSC061.webp?updatedAt=1737226362586",
+      },
+    ];  
+    await Promise.all(
+      staffData.map(data => 
+        prisma.staff.create({
+          data: {
+            name: data.name,
+            position: data.position,
+            imageUrl: data.imageUrl
+          }
+        })
+      )
+    );
 
     // Create Roles
     const roles = await Promise.all([
