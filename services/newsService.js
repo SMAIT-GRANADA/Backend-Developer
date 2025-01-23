@@ -15,7 +15,9 @@ async function createNews(data, files) {
     });
 
     if (files && files.media) {
-      const mediaFiles = Array.isArray(files.media) ? files.media : [files.media];
+      const mediaFiles = Array.isArray(files.media)
+        ? files.media
+        : [files.media];
 
       const mediaPromises = mediaFiles.map(async (file) => {
         const imageKitResponse = await uploadToImageKit(file);
@@ -99,6 +101,7 @@ async function getAllNews(queryParams = {}) {
     };
   }
 }
+
 async function updateNews(id, data, files) {
   try {
     const existingNews = await prisma.news.findUnique({
@@ -112,6 +115,7 @@ async function updateNews(id, data, files) {
         message: "Berita tidak ditemukan",
       };
     }
+
     const updatedNews = await prisma.news.update({
       where: { id: Number(id) },
       data: {
@@ -124,22 +128,33 @@ async function updateNews(id, data, files) {
     });
 
     if (files && files.media) {
-      const mediaFiles = Array.isArray(files.media) ? files.media : [files.media];
-      
+      const mediaFiles = Array.isArray(files.media)
+        ? files.media
+        : [files.media];
+
       const mediaPromises = mediaFiles.map(async (file) => {
+        if (!file || !file.mimetype) {
+          throw new Error("Invalid file format");
+        }
+
         const imageKitResponse = await uploadToImageKit(file);
+        if (!imageKitResponse || !imageKitResponse.url) {
+          throw new Error("Failed to upload media");
+        }
+
         return prisma.newsMedia.create({
           data: {
             newsId: updatedNews.id,
             mediaType: file.mimetype.startsWith("image/") ? "image" : "video",
             mediaUrl: imageKitResponse.url,
-            fileId: imageKitResponse.fileId
+            fileId: imageKitResponse.fileId || null,
           },
         });
       });
 
       await Promise.all(mediaPromises);
     }
+
     const finalNews = await prisma.news.findUnique({
       where: { id: Number(id) },
       include: { media: true },
@@ -154,7 +169,7 @@ async function updateNews(id, data, files) {
     console.error("Error in updateNews service:", error);
     return {
       status: false,
-      message: "Gagal memperbarui berita",
+      message: error.message || "Gagal memperbarui berita",
     };
   }
 }
@@ -200,67 +215,6 @@ async function getNewsById(id, user = null) {
     return {
       status: false,
       message: "Gagal mengambil detail berita",
-    };
-  }
-}
-
-async function updateNews(id, data, files) {
-  try {
-    const existingNews = await prisma.news.findUnique({
-      where: { id: Number(id) },
-      include: { media: true },
-    });
-
-    if (!existingNews) {
-      return {
-        status: false,
-        message: "Berita tidak ditemukan",
-      };
-    }
-
-    const updatedNews = await prisma.news.update({
-      where: { id: Number(id) },
-      data: {
-        title: data.title,
-        description: data.description,
-        isPublished: data.isPublished || false,
-        publishedAt: data.isPublished ? new Date() : null,
-      },
-      include: { media: true },
-    });
-
-    if (files && files.media) {
-      const mediaFiles = Array.isArray(files.media)
-        ? files.media
-        : [files.media];
-      const mediaPromises = mediaFiles.map((file) => {
-        return prisma.newsMedia.create({
-          data: {
-            newsId: updatedNews.id,
-            mediaType: file.mimetype.startsWith("image/") ? "image" : "video",
-            mediaUrl: file.path.replace(/\\/g, "/"),
-          },
-        });
-      });
-
-      await Promise.all(mediaPromises);
-    }
-
-    const finalNews = await prisma.news.findUnique({
-      where: { id: Number(id) },
-      include: { media: true },
-    });
-
-    return {
-      status: true,
-      message: "Berita berhasil diperbarui",
-      data: finalNews,
-    };
-  } catch (error) {
-    console.error("Error in updateNews service:", error);
-    return {
-      status: false,
-      message: "Gagal memperbarui berita",
     };
   }
 }
