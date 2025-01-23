@@ -3,6 +3,18 @@ const prisma = new PrismaClient();
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 
+const ROLE_IDS = {
+  SUPER_ADMIN: 1,
+  ADMIN: 2,
+  TEACHER: 3,
+  PARENT: 4,
+  STUDENT: 5
+};
+
+function isValidRoleId(roleId) {
+  return Object.values(ROLE_IDS).includes(Number(roleId));
+}
+
 async function createUser(userData) {
   try {
     const requiredFields = ['username', 'password', 'name', 'email', 'roleId'];
@@ -10,6 +22,10 @@ async function createUser(userData) {
       if (!userData[field]) {
         throw new Error(`${field} is required`);
       }
+    }
+
+    if (!isValidRoleId(userData.roleId)) {
+      throw new Error('Invalid role ID');
     }
 
     const roleExists = await prisma.role.findUnique({
@@ -36,10 +52,8 @@ async function createUser(userData) {
       throw new Error('Email already exists');
     }
 
-    // Hash password sebelum disimpan
     const hashedPassword = await bcrypt.hash(userData.password, 10);
 
-    // Create user with role
     const newUser = await prisma.user.create({
       data: {
         username: userData.username,
@@ -65,7 +79,14 @@ async function createUser(userData) {
       }
     });
 
-    // Remove password from response
+    if (Number(userData.roleId) === ROLE_IDS.SUPER_ADMIN) {
+      await prisma.superAdmin.create({
+        data: {
+          userId: newUser.id
+        }
+      });
+    }
+
     const userResponse = { ...newUser };
     delete userResponse.password;
     
@@ -136,7 +157,14 @@ async function getUserById(id) {
 async function updateUser(id, userData) {
   try {
     const existingUser = await prisma.user.findUnique({
-      where: { id: Number(id) }
+      where: { id: Number(id) },
+      include: {
+        roles: {
+          include: {
+            role: true
+          }
+        }
+      }
     });
 
     if (!existingUser) {
@@ -168,6 +196,10 @@ async function updateUser(id, userData) {
     }
 
     if (userData.roleId) {
+      if (!isValidRoleId(userData.roleId)) {
+        throw new Error('Invalid role ID');
+      }
+
       const roleExists = await prisma.role.findUnique({
         where: { id: Number(userData.roleId) }
       });
@@ -175,6 +207,7 @@ async function updateUser(id, userData) {
       if (!roleExists) {
         throw new Error('Role not found');
       }
+
       await prisma.userRole.updateMany({
         where: { userId: Number(id) },
         data: { roleId: Number(userData.roleId) }
@@ -182,12 +215,10 @@ async function updateUser(id, userData) {
       delete userData.roleId;
     }
 
-    // Hash password jika ada update password
     if (userData.password) {
       userData.password = await bcrypt.hash(userData.password, 10);
     }
 
-    // Update user
     const updatedUser = await prisma.user.update({
       where: { id: Number(id) },
       data: userData,
@@ -207,7 +238,6 @@ async function updateUser(id, userData) {
       }
     });
 
-    // Invalidate semua token jika password atau status user diubah
     if (userData.password || userData.hasOwnProperty('isActive')) {
       await prisma.token.updateMany({
         where: { 
@@ -243,13 +273,11 @@ async function deleteUser(id) {
       throw new Error('User tidak ditemukan');
     }
 
-    // Check if user is a superadmin
     if (existingUser.superAdmin) {
       throw new Error('Cannot delete superadmin user');
     }
 
     await prisma.$transaction([
-      // Invalidate semua token user
       prisma.token.updateMany({
         where: { 
           userId: Number(id),
@@ -298,7 +326,6 @@ async function deleteUser(id) {
   }
 }
 
-// Fungsi untuk validasi password
 async function validatePassword(inputPassword, hashedPassword) {
   return await bcrypt.compare(inputPassword, hashedPassword);
 }
@@ -309,5 +336,6 @@ module.exports = {
   getUserById,
   updateUser,
   deleteUser,
-  validatePassword
+  validatePassword,
+  ROLE_IDS
 };

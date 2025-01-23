@@ -230,134 +230,140 @@ async function main() {
       )
     );
 
-    // Create Roles
-    const roles = await Promise.all([
-      prisma.role.create({
-        data: {
-          name: 'superadmin',
-          description: 'Super Administrator with full access'
-        }
-      }),
-      prisma.role.create({
-        data: {
-          name: 'admin',
-          description: 'Administrator with limited access'
-        }
-      }),
-      prisma.role.create({
-        data: {
-          name: 'guru',
-          description: 'Teacher role'
-        }
-      }),
-      prisma.role.create({
-        data: {
-          name: 'ortu',
-          description: 'Parent role'
-        }
-      }),
-      prisma.role.create({
-        data: {
-          name: 'siswa',
-          description: 'Student role'
-        }
-      })
-    ]);
-    const superAdminUser = await prisma.user.create({
-      data: {
-        username: 'superadmin',
-        password: await hashPassword('superadmin123'),
-        name: 'Super Admin',
-        email: 'superadmin@granada.sch.id',
-        roles: {
-          create: {
-            roleId: roles[0].id
-          }
+// Create Roles
+const roles = await Promise.all([
+  prisma.role.create({
+    data: {
+      id: 1,
+      name: 'superadmin',
+      description: 'Super Administrator with full access'
+    }
+  }),
+  prisma.role.create({
+    data: {
+      id: 2,
+      name: 'admin',
+      description: 'Administrator with limited access'
+    }
+  }),
+  prisma.role.create({
+    data: {
+      id: 3,
+      name: 'guru',
+      description: 'Teacher role'
+    }
+  }),
+  prisma.role.create({
+    data: {
+      id: 4,
+      name: 'ortu',
+      description: 'Parent role'
+    }
+  }),
+  prisma.role.create({
+    data: {
+      id: 5,
+      name: 'siswa',
+      description: 'Student role'
+    }
+  })
+]);
+
+const superAdminUser = await prisma.user.create({
+  data: {
+    username: 'superadmin',
+    password: await hashPassword('superadmin123'),
+    name: 'Super Admin',
+    email: 'superadmin@granada.sch.id',
+    roles: {
+      create: {
+        roleId: 1 
+      }
+    }
+  }
+});
+
+// Create SuperAdmin record
+const superAdmin = await prisma.superAdmin.create({
+  data: {
+    userId: superAdminUser.id
+  }
+});
+
+// Create Admin User dengan password yang di-hash
+const adminUser = await prisma.user.create({
+  data: {
+    username: 'admin',
+    password: await hashPassword('admin123'),
+    name: 'Admin User',
+    email: 'admin@granada.sch.id',
+    roles: {
+      create: {
+        roleId: 2 // Gunakan 2 untuk admin
+      }
+    }
+  }
+});
+
+// Create Teacher Users dengan password yang di-hash
+const teachers = await Promise.all([
+  prisma.user.create({
+    data: {
+      username: 'guru1',
+      password: await hashPassword('guru123'),
+      name: 'Ahmad Teacher',
+      email: 'ahmad@granada.sch.id',
+      roles: {
+        create: {
+          roleId: 3 // Gunakan 3 untuk guru
         }
       }
-    });
-
-    // Create SuperAdmin record
-    const superAdmin = await prisma.superAdmin.create({
-      data: {
-        userId: superAdminUser.id
-      }
-    });
-
-    // Create Admin User dengan password yang di-hash
-    const adminUser = await prisma.user.create({
-      data: {
-        username: 'admin',
-        password: await hashPassword('admin123'),
-        name: 'Admin User',
-        email: 'admin@granada.sch.id',
-        roles: {
-          create: {
-            roleId: roles[1].id
-          }
+    }
+  }),
+  prisma.user.create({
+    data: {
+      username: 'guru2',
+      password: await hashPassword('guru123'),
+      name: 'Siti Teacher',
+      email: 'siti@granada.sch.id',
+      roles: {
+        create: {
+          roleId: 3 // Gunakan 3 untuk guru
         }
       }
-    });
+    }
+  })
+]);
 
-    // Create Teacher Users dengan password yang di-hash
-    const teachers = await Promise.all([
-      prisma.user.create({
-        data: {
-          username: 'guru1',
-          password: await hashPassword('guru123'),
-          name: 'Ahmad Teacher',
-          email: 'ahmad@granada.sch.id',
-          roles: {
-            create: {
-              roleId: roles[2].id
-            }
-          }
+// Create Student Users dengan password yang di-hash
+const students = await Promise.all([
+  prisma.user.create({
+    data: {
+      username: 'siswa1',
+      password: await hashPassword('siswa123'),
+      name: 'Deni Student',
+      email: 'deni@student.granada.sch.id',
+      roles: {
+        create: {
+          roleId: 5 // Gunakan 5 untuk siswa
         }
-      }),
-      prisma.user.create({
-        data: {
-          username: 'guru2',
-          password: await hashPassword('guru123'),
-          name: 'Siti Teacher',
-          email: 'siti@granada.sch.id',
-          roles: {
-            create: {
-              roleId: roles[2].id
-            }
-          }
+      }
+    }
+  }),
+  prisma.user.create({
+    data: {
+      username: 'siswa2',
+      password: await hashPassword('siswa123'),
+      name: 'Rina Student',
+      email: 'rina@student.granada.sch.id',
+      roles: {
+        create: {
+          roleId: 5 // Gunakan 5 untuk siswa
         }
-      })
-    ]);
-
-    // Create Student Users dengan password yang di-hash
-    const students = await Promise.all([
-      prisma.user.create({
-        data: {
-          username: 'siswa1',
-          password: await hashPassword('siswa123'),
-          name: 'Deni Student',
-          email: 'deni@student.granada.sch.id',
-          roles: {
-            create: {
-              roleId: roles[4].id
-            }
-          }
-        }
-      }),
-      prisma.user.create({
-        data: {
-          username: 'siswa2',
-          password: await hashPassword('siswa123'),
-          name: 'Rina Student',
-          email: 'rina@student.granada.sch.id',
-          roles: {
-            create: {
-              roleId: roles[4].id
-            }
-          }
-        }
-      })
-    ]);
+      }
+    }
+  })
+]);
 
     // Create Sample News
     const news = await prisma.news.create({
