@@ -46,7 +46,7 @@ class Mailer {
           .otp {
             font-size: 36px; 
             font-weight: bold;
-            color: #007bff;
+            color: #017035;
             margin-top: 20px;
             padding: 10px;
             background-color: #f0f0f0;
@@ -55,7 +55,7 @@ class Mailer {
           .footer {
             text-align: center;
             padding: 20px 0;
-            color: #888;
+            color: #BEBEBE;
             font-size: 12px;
             margin-top: 20px;
             border-top: 1px solid #ddd;
@@ -74,7 +74,7 @@ class Mailer {
             <p>If you didn’t request this, please ignore this email.</p>
           </div>
           <div class="footer">
-            <p>&copy; 2023 Your Company. All rights reserved.</p>
+            <p>&copy; 2025 SMAIT GRANADA. All rights reserved.</p>
           </div>
         </div>
       </body>
