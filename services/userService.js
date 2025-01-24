@@ -100,9 +100,21 @@ async function createUser(userData) {
   }
 }
 
-async function getAllUsers() {
+async function getAllUsers(page = 1, limit = 10) {
   try {
+    page = parseInt(page);
+    limit = parseInt(limit);
+
+    if (isNaN(page) || page < 1) page = 1;
+    if (isNaN(limit) || limit < 1) limit = 10;
+
+    const skip = (page - 1) * limit;
+
+    const totalUsers = await prisma.user.count();
+
     const users = await prisma.user.findMany({
+      skip,
+      take: limit,
       select: {
         id: true,
         username: true,
@@ -116,9 +128,23 @@ async function getAllUsers() {
             role: true
           }
         }
+      },
+      orderBy: {
+        createdAt: 'desc'
       }
     });
-    return users;
+
+    const totalPages = Math.ceil(totalUsers / limit);
+
+    return {
+      data: users,
+      meta: {
+        currentPage: page,
+        totalPages,
+        totalData: totalUsers,
+        dataPerPage: limit
+      }
+    };
   } catch (error) {
     throw error;
   }
