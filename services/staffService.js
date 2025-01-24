@@ -9,8 +9,14 @@ async function getAllStaff(queryParams = {}) {
       search = "",
       position = "" 
     } = queryParams;
+
+    let pageNum = parseInt(page);
+    let limitNum = parseInt(limit);
+
+    if (isNaN(pageNum) || pageNum < 1) pageNum = 1;
+    if (isNaN(limitNum) || limitNum < 1) limitNum = 10;
     
-    const skip = (page - 1) * Number(limit);
+    const skip = (pageNum - 1) * limitNum;
     
     const where = {
       isActive: true
@@ -40,14 +46,15 @@ async function getAllStaff(queryParams = {}) {
       };
     }
 
-    const [staff, total] = await Promise.all([
+    const [staff, totalData] = await Promise.all([
       prisma.staff.findMany({
         skip,
-        take: Number(limit),
+        take: limitNum,
         where,
-        orderBy: {
-          createdAt: "desc"
-        },
+        orderBy: [
+          { createdAt: "desc" },
+          { id: "asc" }
+        ],
         select: {
           id: true,
           name: true,
@@ -61,14 +68,17 @@ async function getAllStaff(queryParams = {}) {
       prisma.staff.count({ where })
     ]);
 
+    const totalPages = Math.ceil(totalData / limitNum);
+
     return {
       status: true,
+      message: "Data staff berhasil diambil",
       data: staff,
-      pagination: {
-        total,
-        page: Number(page),
-        limit: Number(limit),
-        totalPages: Math.ceil(total / Number(limit))
+      meta: {
+        currentPage: pageNum,
+        totalPages,
+        totalData,
+        dataPerPage: limitNum
       }
     };
   } catch (error) {

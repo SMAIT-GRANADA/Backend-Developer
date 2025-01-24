@@ -11,7 +11,12 @@ async function getAllStaff(req, res) {
       });
     }
 
-    return res.status(200).json(result);
+    return res.status(200).json({
+      status: true,
+      message: result.message,
+      data: result.data,
+      meta: result.meta
+    });
   } catch (error) {
     console.error("Error in getAllStaff controller:", error);
     return res.status(500).json({
