@@ -318,24 +318,26 @@ async function getProfile(req, res) {
 
 async function forgotPassword(req, res) {
   try {
-    const { email } = req.body;
+    const { username } = req.body;
 
-    if (!email) {
+    if (!username) {
       return res.status(400).json({
         status: false,
-        message: 'Email harus diisi'
+        message: 'Username harus diisi'
       });
     }
+
     const user = await prisma.user.findUnique({
-      where: { email }
+      where: { username }
     });
 
     if (!user) {
       return res.status(404).json({
         status: false,
-        message: 'Email tidak terdaftar'
+        message: 'Username tidak terdaftar'
       });
     }
+
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
     await prisma.passwordReset.create({
       data: {
@@ -345,7 +347,7 @@ async function forgotPassword(req, res) {
       }
     });
 
-    await Mailer.sendPasswordResetEmail(email, otp);
+    await Mailer.sendPasswordResetEmail(user.email, otp);
 
     return res.json({
       status: true,
@@ -363,32 +365,28 @@ async function forgotPassword(req, res) {
 
 async function verifyOtp(req, res) {
   try {
-    const { email, otp } = req.body;
+    const { otp } = req.body;
 
-    if (!email || !otp) {
+    if (!otp) {
       return res.status(400).json({
         status: false,
-        message: 'Email dan OTP harus diisi'
+        message: 'OTP harus diisi'
       });
     }
-
-    const user = await prisma.user.findUnique({
-      where: { email },
+    const passwordReset = await prisma.passwordReset.findFirst({
+      where: {
+        otp,
+        expiresAt: { gt: new Date() },
+        isUsed: false,
+        isVerified: false
+      },
+      orderBy: { createdAt: 'desc' },
       include: {
-        passwordResets: { 
-          where: {
-            otp,
-            expiresAt: { gt: new Date() },
-            isUsed: false,
-            isVerified: false
-          },
-          orderBy: { createdAt: 'desc' },
-          take: 1
-        }
+        user: true
       }
     });
 
-    if (!user || user.passwordResets.length === 0) {
+    if (!passwordReset) {
       return res.status(400).json({
         status: false,
         message: 'OTP tidak valid atau sudah kadaluarsa'
@@ -398,8 +396,8 @@ async function verifyOtp(req, res) {
     const resetToken = crypto.randomBytes(32).toString('hex');
 
     await prisma.passwordReset.update({
-      where: { id: user.passwordResets[0].id },
-      data: { 
+      where: { id: passwordReset.id },
+      data: {
         resetToken,
         isVerified: true
       }
@@ -423,12 +421,12 @@ async function verifyOtp(req, res) {
 }
 async function resetPassword(req, res) {
   try {
-    const { email, resetToken, newPassword, confirmPassword } = req.body;
+    const { resetToken, newPassword, confirmPassword } = req.body;
 
-    if (!email || !resetToken || !newPassword || !confirmPassword) {
+    if (!resetToken || !newPassword || !confirmPassword) {
       return res.status(400).json({
         status: false,
-        message: 'Email, token reset, password baru, dan konfirmasi password harus diisi'
+        message: 'Token reset, password baru, dan konfirmasi password harus diisi'
       });
     }
 
@@ -439,23 +437,20 @@ async function resetPassword(req, res) {
       });
     }
 
-    const user = await prisma.user.findUnique({
-      where: { email },
+    const passwordReset = await prisma.passwordReset.findFirst({
+      where: {
+        resetToken,
+        isVerified: true,
+        isUsed: false,
+        expiresAt: { gt: new Date() }
+      },
+      orderBy: { createdAt: 'desc' },
       include: {
-        passwordResets: {
-          where: {
-            resetToken,
-            isVerified: true,
-            isUsed: false,
-            expiresAt: { gt: new Date() }
-          },
-          orderBy: { createdAt: 'desc' },
-          take: 1
-        }
+        user: true
       }
     });
 
-    if (!user || user.passwordResets.length === 0) {
+    if (!passwordReset) {
       return res.status(400).json({
         status: false,
         message: 'Token reset tidak valid atau sudah kadaluarsa'
@@ -469,16 +464,16 @@ async function resetPassword(req, res) {
       });
     }
 
-    await userService.updateUser(user.id, { password: newPassword });
+    await userService.updateUser(passwordReset.userId, { password: newPassword });
 
     await prisma.passwordReset.update({
-      where: { id: user.passwordResets[0].id },
+      where: { id: passwordReset.id },
       data: { isUsed: true }
     });
 
-    await authService.invalidateAllUserTokens(user.id);
+    await authService.invalidateAllUserTokens(passwordReset.userId);
 
-    await Mailer.sendPasswordChangeNotification(email);
+    await Mailer.sendPasswordChangeNotification(passwordReset.user.email);
 
     return res.json({
       status: true,
