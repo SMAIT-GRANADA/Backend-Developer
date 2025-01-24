@@ -147,12 +147,16 @@ async function createUser(req, res) {
 // Get all users
 async function getAllUsers(req, res) {
   try {
-    const users = await userService.getAllUsers();
+    const page = req.query.page || 1;
+    const limit = req.query.limit || 10;
+
+    const result = await userService.getAllUsers(page, limit);
 
     return res.json({
       status: true,
       message: 'Data user berhasil diambil',
-      data: users
+      data: result.data,
+      meta: result.meta
     });
 
   } catch (error) {
