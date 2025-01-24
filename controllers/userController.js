@@ -1,7 +1,8 @@
+const crypto = require('crypto');
 const { PrismaClient } = require('@prisma/client');
 const userService = require('../services/userService');
 const authService = require('../services/authService');
-
+const Mailer = require('../libs/mailer')
 const prisma = new PrismaClient();
 
 // Login handler
@@ -315,6 +316,183 @@ async function getProfile(req, res) {
   }
 }
 
+async function forgotPassword(req, res) {
+  try {
+    const { email } = req.body;
+
+    if (!email) {
+      return res.status(400).json({
+        status: false,
+        message: 'Email harus diisi'
+      });
+    }
+    const user = await prisma.user.findUnique({
+      where: { email }
+    });
+
+    if (!user) {
+      return res.status(404).json({
+        status: false,
+        message: 'Email tidak terdaftar'
+      });
+    }
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    await prisma.passwordReset.create({
+      data: {
+        userId: user.id,
+        otp,
+        expiresAt: new Date(Date.now() + 5 * 60 * 1000) // 5 minutes
+      }
+    });
+
+    await Mailer.sendPasswordResetEmail(email, otp);
+
+    return res.json({
+      status: true,
+      message: 'OTP telah dikirim ke email Anda'
+    });
+
+  } catch (error) {
+    console.error('Forgot password error:', error);
+    return res.status(500).json({
+      status: false,
+      message: 'Terjadi kesalahan internal server'
+    });
+  }
+}
+
+async function verifyOtp(req, res) {
+  try {
+    const { email, otp } = req.body;
+
+    if (!email || !otp) {
+      return res.status(400).json({
+        status: false,
+        message: 'Email dan OTP harus diisi'
+      });
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { email },
+      include: {
+        passwordResets: { 
+          where: {
+            otp,
+            expiresAt: { gt: new Date() },
+            isUsed: false,
+            isVerified: false
+          },
+          orderBy: { createdAt: 'desc' },
+          take: 1
+        }
+      }
+    });
+
+    if (!user || user.passwordResets.length === 0) {
+      return res.status(400).json({
+        status: false,
+        message: 'OTP tidak valid atau sudah kadaluarsa'
+      });
+    }
+
+    const resetToken = crypto.randomBytes(32).toString('hex');
+
+    await prisma.passwordReset.update({
+      where: { id: user.passwordResets[0].id },
+      data: { 
+        resetToken,
+        isVerified: true
+      }
+    });
+
+    return res.json({
+      status: true,
+      message: 'OTP terverifikasi',
+      data: {
+        resetToken
+      }
+    });
+
+  } catch (error) {
+    console.error('Verify OTP error:', error);
+    return res.status(500).json({
+      status: false,
+      message: 'Terjadi kesalahan internal server'
+    });
+  }
+}
+async function resetPassword(req, res) {
+  try {
+    const { email, resetToken, newPassword, confirmPassword } = req.body;
+
+    if (!email || !resetToken || !newPassword || !confirmPassword) {
+      return res.status(400).json({
+        status: false,
+        message: 'Email, token reset, password baru, dan konfirmasi password harus diisi'
+      });
+    }
+
+    if (newPassword !== confirmPassword) {
+      return res.status(400).json({
+        status: false,
+        message: 'Password baru dan konfirmasi password tidak cocok'
+      });
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { email },
+      include: {
+        passwordResets: {
+          where: {
+            resetToken,
+            isVerified: true,
+            isUsed: false,
+            expiresAt: { gt: new Date() }
+          },
+          orderBy: { createdAt: 'desc' },
+          take: 1
+        }
+      }
+    });
+
+    if (!user || user.passwordResets.length === 0) {
+      return res.status(400).json({
+        status: false,
+        message: 'Token reset tidak valid atau sudah kadaluarsa'
+      });
+    }
+
+    if (newPassword.length < 8) {
+      return res.status(400).json({
+        status: false,
+        message: 'Password minimal 8 karakter'
+      });
+    }
+
+    await userService.updateUser(user.id, { password: newPassword });
+
+    await prisma.passwordReset.update({
+      where: { id: user.passwordResets[0].id },
+      data: { isUsed: true }
+    });
+
+    await authService.invalidateAllUserTokens(user.id);
+
+    await Mailer.sendPasswordChangeNotification(email);
+
+    return res.json({
+      status: true,
+      message: 'Password berhasil direset'
+    });
+
+  } catch (error) {
+    console.error('Reset password error:', error);
+    return res.status(500).json({
+      status: false,
+      message: 'Terjadi kesalahan internal server'
+    });
+  }
+}
 // Update current user's password
 async function updatePassword(req, res) {
   try {
@@ -366,5 +544,8 @@ module.exports = {
   updateUser,
   deleteUser,
   getProfile,
-  updatePassword
+  updatePassword,
+  forgotPassword,
+  verifyOtp,
+  resetPassword
 };

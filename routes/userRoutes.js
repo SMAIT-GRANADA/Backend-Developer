@@ -5,6 +5,9 @@ const { checkAuth } = require('../middlewares/authMiddleware');
 
 router.post('/auth/login', userController.login);
 router.post('/auth/logout', checkAuth, userController.logout);
+router.post('/auth/forgot-password', userController.forgotPassword);
+router.post('/auth/verify-otp', userController.verifyOtp);
+router.post('/auth/reset-password', userController.resetPassword);
 
 router.use(checkAuth);
 
