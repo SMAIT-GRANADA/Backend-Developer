@@ -36,36 +36,61 @@ async function createQuote(quoteData) {
   }
 }
 
-async function getAllQuotes(req, res) {
-  try {
-    const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 10;
-    const random = req.query.random === 'true';
-    if (page < 1 || limit < 1) {
-      return res.status(400).json({
-        status: false,
-        message: 'Page dan limit harus lebih besar dari 0'
-      });
-    }
-
-    const safeLimit = Math.min(limit, 100);
-
-    const result = await quoteService.getAllQuotes(page, safeLimit, random);
-
-    return res.json({
-      status: true,
-      message: 'Data quote berhasil diambil',
-      data: result.data,
-      meta: result.meta
+async function getAllQuotes(page, limit, random) {
+  const skip = (page - 1) * limit;
+  
+  let quotes;
+  let total;
+  
+  if (random) {
+    quotes = await prisma.quote.findMany({
+      take: limit,
+      orderBy: {
+        id: 'desc'
+      },
+      include: {
+        superAdmin: {
+          include: {
+            user: {
+              select: {
+                name: true
+              }
+            }
+          }
+        }
+      }
     });
-
-  } catch (error) {
-    console.error('Get all quotes error:', error);
-    return res.status(500).json({
-      status: false,
-      message: 'Terjadi kesalahan internal server'
+  } else {
+    quotes = await prisma.quote.findMany({
+      skip,
+      take: limit,
+      orderBy: {
+        id: 'desc'
+      },
+      include: {
+        superAdmin: {
+          include: {
+            user: {
+              select: {
+                name: true
+              }
+            }
+          }
+        }
+      }
     });
+    
+    total = await prisma.quote.count();
   }
+  
+  return {
+    data: quotes,
+    meta: {
+      page,
+      limit,
+      total: total || quotes.length
+    }
+  };
 }
 async function updateQuote(id, quoteData) {
   try {
