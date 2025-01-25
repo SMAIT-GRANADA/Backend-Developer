@@ -60,7 +60,7 @@ const sessionConfig = {
 app.use(session(sessionConfig));
 
 // Routes
-const routers = [newsRouter, staffRoutes, userRouter, academicRouter, attendanceRouter, quoteRoutes];
+const routers = [newsRouter, staffRoutes, quoteRoutes, userRouter, academicRouter, attendanceRouter];
 routers.forEach((router) => app.use("/api/v1", router));
 
 
