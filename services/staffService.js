@@ -3,20 +3,20 @@ const prisma = new PrismaClient();
 
 async function getAllStaff(queryParams = {}) {
   try {
-    const { 
+    let { 
       page = 1, 
-      limit = 10, 
+      limit = 4,
       search = "",
       position = "" 
     } = queryParams;
 
-    let pageNum = parseInt(page);
-    let limitNum = parseInt(limit);
+    page = parseInt(page);
+    limit = parseInt(limit);
 
-    if (isNaN(pageNum) || pageNum < 1) pageNum = 1;
-    if (isNaN(limitNum) || limitNum < 1) limitNum = 10;
+    if (isNaN(page) || page < 1) page = 1;
+    if (isNaN(limit) || limit < 1) limit = 4;
     
-    const skip = (pageNum - 1) * limitNum;
+    const skip = (page - 1) * limit;
     
     const where = {
       isActive: true
@@ -49,10 +49,10 @@ async function getAllStaff(queryParams = {}) {
     const [staff, totalData] = await Promise.all([
       prisma.staff.findMany({
         skip,
-        take: limitNum,
+        take: limit,
         where,
         orderBy: [
-          { createdAt: "desc" },
+          { order: "asc" },
           { id: "asc" }
         ],
         select: {
@@ -60,6 +60,7 @@ async function getAllStaff(queryParams = {}) {
           name: true,
           position: true,
           imageUrl: true,
+          order: true,
           isActive: true,
           createdAt: true,
           updatedAt: true
@@ -68,17 +69,19 @@ async function getAllStaff(queryParams = {}) {
       prisma.staff.count({ where })
     ]);
 
-    const totalPages = Math.ceil(totalData / limitNum);
+    const totalPages = Math.ceil(totalData / limit);
 
     return {
       status: true,
       message: "Data staff berhasil diambil",
       data: staff,
       meta: {
-        currentPage: pageNum,
+        currentPage: page,
         totalPages,
         totalData,
-        dataPerPage: limitNum
+        dataPerPage: limit,
+        hasNextPage: page < totalPages,
+        hasPrevPage: page > 1
       }
     };
   } catch (error) {
