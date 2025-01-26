@@ -26,196 +26,196 @@ async function main() {
     // Data Staff
     const staffData = [
       {
-        name: "Wahyu",
-        position: "Bimbingan Konseling",
+        name: "Abd.Wahab Syahrani, M.Pd.",
+        position: "Kepala Sekolah",
         imageUrl:
-          "https://ik.imagekit.io/wahyup/Foto%20Guru%20SMA%20IT%20Granada/DSC011238.webp?updatedAt=1737227693278",
+          "https://ik.imagekit.io/smaitgranada/Foto%20Guru%20SMA%20IT%20Granada/Abd.WahabSyahraniM.Pd.webp?updatedAt=1737604483592",
       },
       {
-        name: "Wahyu",
-        position: "Bimbingan Konseling",
+        name: "Muhammad Alhimni Rusdi, M.Pd.",
+        position: "Waka Kurikulum",
         imageUrl:
-          "https://ik.imagekit.io/wahyup/Foto%20Guru%20SMA%20IT%20Granada/DSC288.webp?updatedAt=1737227692822",
+          "https://ik.imagekit.io/smaitgranada/Foto%20Guru%20SMA%20IT%20Granada/MuhammadAlhimniRusdiM.Pd-ezgif.com-jpg-to-webp-converter.webp?updatedAt=1737604483938",
       },
       {
-        name: "Wahyu",
-        position: "Bimbingan Konseling",
+        name: "Agus Salim Razak, S.Pd.",
+        position: "Waka Kesiswaan",
         imageUrl:
-          "https://ik.imagekit.io/wahyup/Foto%20Guru%20SMA%20IT%20Granada/DSC0131900.webp?updatedAt=1737227690617",
+          "https://ik.imagekit.io/smaitgranada/Foto%20Guru%20SMA%20IT%20Granada/AgusSalimRazakS.Pd.webp?updatedAt=1737604483062",
       },
       {
-        name: "Wahyu",
+        name: "Andriansyah, SE.",
         position: "Bimbingan Konseling",
         imageUrl:
-          "https://ik.imagekit.io/wahyup/Foto%20Guru%20SMA%20IT%20Granada/DSC0127134.webp?updatedAt=1737227687042",
+          "https://ik.imagekit.io/smaitgranada/Foto%20Guru%20SMA%20IT%20Granada/AndriansyahSE.webp?updatedAt=1737604483634",
       },
       {
-        name: "Wahyu",
+        name: "Luthfi Hernumurti, SE.",
         position: "Bimbingan Konseling",
         imageUrl:
-          "https://ik.imagekit.io/wahyup/Foto%20Guru%20SMA%20IT%20Granada/DSC012830.webp?updatedAt=1737227686998",
+          "https://ik.imagekit.io/smaitgranada/Foto%20Guru%20SMA%20IT%20Granada/LuthfiHernumurtiSE_-ezgif.com-jpg-to-webp-converter.webp?updatedAt=1737604489545",
       },
       {
-        name: "Wahyu",
+        name: "Zunaydi, S.Pd.",
         position: "Bimbingan Konseling",
         imageUrl:
-          "https://ik.imagekit.io/wahyup/Foto%20Guru%20SMA%20IT%20Granada/DSC012031.webp?updatedAt=1737227686951",
+          "https://ik.imagekit.io/smaitgranada/Foto%20Guru%20SMA%20IT%20Granada/ZunaydiS.Pd-ezgif.com-jpg-to-webp-converter.webp?updatedAt=1737604483280",
       },
       {
-        name: "Wahyu",
+        name: "Mashudi S.Pd.",
         position: "Bimbingan Konseling",
         imageUrl:
-          "https://ik.imagekit.io/wahyup/Foto%20Guru%20SMA%20IT%20Granada/DSC012522.webp?updatedAt=1737227686912",
+          "https://ik.imagekit.io/smaitgranada/Foto%20Guru%20SMA%20IT%20Granada/MashudiS.Pd-ezgif.com-jpg-to-webp-converter.webp?updatedAt=1737604489816",
       },
       {
-        name: "Wahyu",
+        name: "Ali Ibnu Sholih, S.Pd.",
         position: "Bimbingan Konseling",
         imageUrl:
-          "https://ik.imagekit.io/wahyup/Foto%20Guru%20SMA%20IT%20Granada/DSC0124223.webp?updatedAt=1737227686871",
+          "https://ik.imagekit.io/smaitgranada/Foto%20Guru%20SMA%20IT%20Granada/AliIbnuSholihS.Pd.webp?updatedAt=1737604483324",
       },
       {
-        name: "Wahyu",
+        name: "Didin Wahyudin, S.Pd.I.",
         position: "Bimbingan Konseling",
         imageUrl:
-          "https://ik.imagekit.io/wahyup/Foto%20Guru%20SMA%20IT%20Granada/DSC0121234.webp?updatedAt=1737227686787",
+          "https://ik.imagekit.io/smaitgranada/Foto%20Guru%20SMA%20IT%20Granada/DidinWahyudinS.Pd.I.webp?updatedAt=1737604488408",
       },
       {
-        name: "Wahyu",
+        name: "Lingga Pramana Putra, S.Psi.",
         position: "Bimbingan Konseling",
         imageUrl:
-          "https://ik.imagekit.io/wahyup/Foto%20Guru%20SMA%20IT%20Granada/DSC0112293.webp?updatedAt=1737227686707",
+          "https://ik.imagekit.io/smaitgranada/Foto%20Guru%20SMA%20IT%20Granada/LinggaPramanaPutraS.Psi.webp?updatedAt=1737604489468",
       },
       {
-        name: "Wahyu",
+        name: "Jumri Raisi Sabe, S.Pd.",
         position: "Bimbingan Konseling",
         imageUrl:
-          "https://ik.imagekit.io/wahyup/Foto%20Guru%20SMA%20IT%20Granada/DSC019231.webp?updatedAt=1737227686653",
+          "https://ik.imagekit.io/smaitgranada/Foto%20Guru%20SMA%20IT%20Granada/JumriRaisiSabeS.Pd.webp?updatedAt=1737604489738",
       },
       {
-        name: "Wahyu",
+        name: "Harish Jundana, S.Hut.",
         position: "Bimbingan Konseling",
         imageUrl:
-          "https://ik.imagekit.io/wahyup/Foto%20Guru%20SMA%20IT%20Granada/DSC013103.webp?updatedAt=1737227686671",
+          "https://ik.imagekit.io/smaitgranada/Foto%20Guru%20SMA%20IT%20Granada/HarishJundanaS.Hut.webp?updatedAt=1737604489183",
       },
       {
-        name: "Wahyu",
+        name: "Baruna Hardiantoro, S.S.",
         position: "Bimbingan Konseling",
         imageUrl:
-          "https://ik.imagekit.io/wahyup/Foto%20Guru%20SMA%20IT%20Granada/DSC0112297.webp?updatedAt=1737227685346",
+          "https://ik.imagekit.io/smaitgranada/Foto%20Guru%20SMA%20IT%20Granada/BarunaHardiantoroS.S.webp?updatedAt=1737604488312",
       },
       {
-        name: "Wahyu",
+        name: "Luqman Santoso, M.Pd",
         position: "Bimbingan Konseling",
         imageUrl:
-          "https://ik.imagekit.io/wahyup/Foto%20Guru%20SMA%20IT%20Granada/DSC012.webp?updatedAt=1737226372561",
+          "https://ik.imagekit.io/smaitgranada/Foto%20Guru%20SMA%20IT%20Granada/LuqmanSantosoM.Pd-ezgif.com-jpg-to-webp-converter.webp?updatedAt=1737604489733",
       },
       {
-        name: "Wahyu",
+        name: "Muhammad Afif AlHaq, BA.",
         position: "Bimbingan Konseling",
         imageUrl:
-          "https://ik.imagekit.io/wahyup/Foto%20Guru%20SMA%20IT%20Granada/DSC06.webp?updatedAt=1737226372541",
+          "https://ik.imagekit.io/smaitgranada/Foto%20Guru%20SMA%20IT%20Granada/MuhammadAfifAlHaqBA_-ezgif.com-jpg-to-webp-converter.webp?updatedAt=1737604483390",
       },
       {
-        name: "Wahyu",
+        name: "Muhammad Nur Aini, S.Pd.",
         position: "Bimbingan Konseling",
         imageUrl:
-          "https://ik.imagekit.io/wahyup/Foto%20Guru%20SMA%20IT%20Granada/DSC12.webp?updatedAt=1737226372158",
+          "https://ik.imagekit.io/smaitgranada/Foto%20Guru%20SMA%20IT%20Granada/MuhammadNurAiniS.Pd-ezgif.com-jpg-to-webp-converter.webp?updatedAt=1737604483943",
       },
       {
-        name: "Wahyu",
+        name: "Muhammad Arnurzami, S.Pd.",
         position: "Bimbingan Konseling",
         imageUrl:
-          "https://ik.imagekit.io/wahyup/Foto%20Guru%20SMA%20IT%20Granada/DS1179.webp?updatedAt=1737226371944",
+          "https://ik.imagekit.io/smaitgranada/Foto%20Guru%20SMA%20IT%20Granada/MuhammadArnurzamiS.Pd-ezgif.com-jpg-to-webp-converter.webp?updatedAt=1737604483442",
       },
       {
-        name: "Wahyu",
+        name: "Alexandrean, S.Pd.",
         position: "Bimbingan Konseling",
         imageUrl:
-          "https://ik.imagekit.io/wahyup/Foto%20Guru%20SMA%20IT%20Granada/DSC011.webp?updatedAt=1737226371931",
+          "https://ik.imagekit.io/smaitgranada/Foto%20Guru%20SMA%20IT%20Granada/AlexandreanS.Pd.webp?updatedAt=1737604483454",
       },
       {
-        name: "Wahyu",
+        name: "Fachrul Hadi, S.Kom.",
         position: "Bimbingan Konseling",
         imageUrl:
-          "https://ik.imagekit.io/wahyup/Foto%20Guru%20SMA%20IT%20Granada/DSC4.webp?updatedAt=1737226371900",
+          "https://ik.imagekit.io/smaitgranada/Foto%20Guru%20SMA%20IT%20Granada/FachrulHadiS.Kom.webp?updatedAt=1737604488746",
       },
       {
-        name: "Wahyu",
+        name: "Tanti Yoshefa, SP.",
         position: "Bimbingan Konseling",
         imageUrl:
-          "https://ik.imagekit.io/wahyup/Foto%20Guru%20SMA%20IT%20Granada/DSC00.webp?updatedAt=1737226371667",
+          "https://ik.imagekit.io/smaitgranada/Foto%20Guru%20SMA%20IT%20Granada/TantiYoshefaSP-ezgif.com-jpg-to-webp-converter.webp?updatedAt=1737911664701",
       },
       {
-        name: "Wahyu",
+        name: "Miftahul Janah, S.Pd.",
         position: "Bimbingan Konseling",
         imageUrl:
-          "https://ik.imagekit.io/wahyup/Foto%20Guru%20SMA%20IT%20Granada/DS204.webp?updatedAt=1737226371424",
+          "https://ik.imagekit.io/smaitgranada/Foto%20Guru%20SMA%20IT%20Granada/MiftahulJanahS.Pd-ezgif.com-jpg-to-webp-converter.webp?updatedAt=1737911664996",
       },
       {
-        name: "Wahyu",
+        name: "Diah Rahmi Sari, S.HI. M.Pd.",
         position: "Bimbingan Konseling",
         imageUrl:
-          "https://ik.imagekit.io/wahyup/Foto%20Guru%20SMA%20IT%20Granada/DSC01.webp?updatedAt=1737226368096",
+          "https://ik.imagekit.io/smaitgranada/Foto%20Guru%20SMA%20IT%20Granada/DiahRahmiSariS.HI.M.Pd-ezgif.com-jpg-to-webp-converter.webp?updatedAt=1737911664915",
       },
       {
-        name: "Wahyu",
+        name: "Ayu Paramita Rizkhi Handayani, S.Pd.",
         position: "Bimbingan Konseling",
         imageUrl:
-          "https://ik.imagekit.io/wahyup/Foto%20Guru%20SMA%20IT%20Granada/D3.webp?updatedAt=1737226363412",
+          "https://ik.imagekit.io/smaitgranada/Foto%20Guru%20SMA%20IT%20Granada/AyuParamitaRizkhiHandayaniS.Pd-ezgif.com-jpg-to-webp-converter.webp?updatedAt=1737911664710",
       },
       {
-        name: "Wahyu",
+        name: "Recha Ammassa Ramadhani, S.Pd.",
         position: "Bimbingan Konseling",
         imageUrl:
-          "https://ik.imagekit.io/wahyup/Foto%20Guru%20SMA%20IT%20Granada/DSC0122.webp?updatedAt=1737226363375",
+          "https://ik.imagekit.io/smaitgranada/Foto%20Guru%20SMA%20IT%20Granada/RechaAmmassaRamadhaniS.Pd-ezgif.com-jpg-to-webp-converter.webp?updatedAt=1737911664813",
       },
       {
-        name: "Wahyu",
+        name: "Riska Tri Wulandari, S.Pd.",
         position: "Bimbingan Konseling",
         imageUrl:
-          "https://ik.imagekit.io/wahyup/Foto%20Guru%20SMA%20IT%20Granada/DSC01112.webp?updatedAt=1737226363479",
+          "https://ik.imagekit.io/smaitgranada/Foto%20Guru%20SMA%20IT%20Granada/RiskaTriWulandariS.Pd-ezgif.com-jpg-to-webp-converter.webp?updatedAt=1737911664678",
       },
       {
-        name: "Wahyu",
+        name: "Rochima, S.Kep.Ners.",
         position: "Bimbingan Konseling",
         imageUrl:
-          "https://ik.imagekit.io/wahyup/Foto%20Guru%20SMA%20IT%20Granada/DSC015.webp?updatedAt=1737226363477",
+          "https://ik.imagekit.io/smaitgranada/Foto%20Guru%20SMA%20IT%20Granada/RochimaS.Kep.Ners-ezgif.com-jpg-to-webp-converter.webp?updatedAt=1737911669846",
       },
       {
-        name: "Wahyu",
+        name: "Farraz Ainun Fadhilla, M.H.",
         position: "Bimbingan Konseling",
         imageUrl:
-          "https://ik.imagekit.io/wahyup/Foto%20Guru%20SMA%20IT%20Granada/DSC266.webp?updatedAt=1737226363274",
+          "https://ik.imagekit.io/smaitgranada/Foto%20Guru%20SMA%20IT%20Granada/FarrazAinunFadhillaM.H-ezgif.com-jpg-to-webp-converter.webp?updatedAt=1737911664792",
       },
       {
-        name: "Wahyu",
+        name: "Riski Vitria Ningsih, S.Psi.",
         position: "Bimbingan Konseling",
         imageUrl:
-          "https://ik.imagekit.io/wahyup/Foto%20Guru%20SMA%20IT%20Granada/DSC0206.webp?updatedAt=1737226363014",
+          "https://ik.imagekit.io/smaitgranada/Foto%20Guru%20SMA%20IT%20Granada/RiskiVitriaNingsihS.Psi-ezgif.com-jpg-to-webp-converter.webp?updatedAt=1737911669706",
       },
       {
-        name: "Wahyu",
+        name: "Susi Susanti, S.Pd.",
         position: "Bimbingan Konseling",
         imageUrl:
-          "https://ik.imagekit.io/wahyup/Foto%20Guru%20SMA%20IT%20Granada/DS.webp?updatedAt=1737226362754",
+          "https://ik.imagekit.io/smaitgranada/Foto%20Guru%20SMA%20IT%20Granada/SusiSusantiS.Pd-ezgif.com-jpg-to-webp-converter.webp?updatedAt=1737911669882",
       },
       {
-        name: "Wahyu",
+        name: "Nur Rasyidatul Muqit Telda, M.Pd.",
         position: "Bimbingan Konseling",
         imageUrl:
-          "https://ik.imagekit.io/wahyup/Foto%20Guru%20SMA%20IT%20Granada/12.webp?updatedAt=1737226362700",
+          "https://ik.imagekit.io/smaitgranada/Foto%20Guru%20SMA%20IT%20Granada/NurRasyidatulMuqitTelda.M.Pd-ezgif.com-jpg-to-webp-converter.webp?updatedAt=1737911664974",
       },
       {
-        name: "Wahyu",
+        name: "Aidha Siti Khadijah, M.Pd.",
         position: "Bimbingan Konseling",
         imageUrl:
-          "https://ik.imagekit.io/wahyup/Foto%20Guru%20SMA%20IT%20Granada/1.webp?updatedAt=1737226362683",
+          "https://ik.imagekit.io/smaitgranada/Foto%20Guru%20SMA%20IT%20Granada/AidhaSitiKhadijahM.Pd-ezgif.com-jpg-to-webp-converter.webp?updatedAt=1737911664592",
       },
       {
-        name: "Wahyu",
+        name: "Al Mujahidatur Rifqiyah AlAhmadi, Lc.M.Pd.",
         position: "Bimbingan Konseling",
         imageUrl:
-          "https://ik.imagekit.io/wahyup/Foto%20Guru%20SMA%20IT%20Granada/DSC061.webp?updatedAt=1737226362586",
+          "https://ik.imagekit.io/smaitgranada/Foto%20Guru%20SMA%20IT%20Granada/AlMujahidaturRifqiyahAlAhmadiLc.M.Pd-ezgif.com-jpg-to-webp-converter.webp?updatedAt=1737911664908",
       },
     ];  
     await Promise.all(
