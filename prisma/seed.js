@@ -30,201 +30,234 @@ async function main() {
         position: "Kepala Sekolah",
         imageUrl:
           "https://ik.imagekit.io/smaitgranada/Foto%20Guru%20SMA%20IT%20Granada/Abd.WahabSyahraniM.Pd.webp?updatedAt=1737604483592",
+        order: 1
       },
       {
         name: "Muhammad Alhimni Rusdi, M.Pd.",
         position: "Waka Kurikulum",
         imageUrl:
           "https://ik.imagekit.io/smaitgranada/Foto%20Guru%20SMA%20IT%20Granada/MuhammadAlhimniRusdiM.Pd-ezgif.com-jpg-to-webp-converter.webp?updatedAt=1737604483938",
+          order: 2
       },
       {
         name: "Agus Salim Razak, S.Pd.",
         position: "Waka Kesiswaan",
         imageUrl:
           "https://ik.imagekit.io/smaitgranada/Foto%20Guru%20SMA%20IT%20Granada/AgusSalimRazakS.Pd.webp?updatedAt=1737604483062",
+          order: 3
       },
       {
         name: "Andriansyah, SE.",
         position: "Bimbingan Konseling",
         imageUrl:
           "https://ik.imagekit.io/smaitgranada/Foto%20Guru%20SMA%20IT%20Granada/AndriansyahSE.webp?updatedAt=1737604483634",
+          order: 4
       },
       {
         name: "Luthfi Hernumurti, SE.",
         position: "Bimbingan Konseling",
         imageUrl:
           "https://ik.imagekit.io/smaitgranada/Foto%20Guru%20SMA%20IT%20Granada/LuthfiHernumurtiSE_-ezgif.com-jpg-to-webp-converter.webp?updatedAt=1737604489545",
+          order: 5
       },
       {
         name: "Zunaydi, S.Pd.",
         position: "Bimbingan Konseling",
         imageUrl:
           "https://ik.imagekit.io/smaitgranada/Foto%20Guru%20SMA%20IT%20Granada/ZunaydiS.Pd-ezgif.com-jpg-to-webp-converter.webp?updatedAt=1737604483280",
+          order: 6
       },
       {
         name: "Mashudi S.Pd.",
         position: "Bimbingan Konseling",
         imageUrl:
           "https://ik.imagekit.io/smaitgranada/Foto%20Guru%20SMA%20IT%20Granada/MashudiS.Pd-ezgif.com-jpg-to-webp-converter.webp?updatedAt=1737604489816",
+          order: 7
       },
       {
         name: "Ali Ibnu Sholih, S.Pd.",
         position: "Bimbingan Konseling",
         imageUrl:
           "https://ik.imagekit.io/smaitgranada/Foto%20Guru%20SMA%20IT%20Granada/AliIbnuSholihS.Pd.webp?updatedAt=1737604483324",
+          order: 8
       },
       {
         name: "Didin Wahyudin, S.Pd.I.",
         position: "Bimbingan Konseling",
         imageUrl:
           "https://ik.imagekit.io/smaitgranada/Foto%20Guru%20SMA%20IT%20Granada/DidinWahyudinS.Pd.I.webp?updatedAt=1737604488408",
+          order: 9
       },
       {
         name: "Lingga Pramana Putra, S.Psi.",
         position: "Bimbingan Konseling",
         imageUrl:
           "https://ik.imagekit.io/smaitgranada/Foto%20Guru%20SMA%20IT%20Granada/LinggaPramanaPutraS.Psi.webp?updatedAt=1737604489468",
+          order: 10
       },
       {
         name: "Jumri Raisi Sabe, S.Pd.",
         position: "Bimbingan Konseling",
         imageUrl:
           "https://ik.imagekit.io/smaitgranada/Foto%20Guru%20SMA%20IT%20Granada/JumriRaisiSabeS.Pd.webp?updatedAt=1737604489738",
+          order: 11
       },
       {
         name: "Harish Jundana, S.Hut.",
         position: "Bimbingan Konseling",
         imageUrl:
           "https://ik.imagekit.io/smaitgranada/Foto%20Guru%20SMA%20IT%20Granada/HarishJundanaS.Hut.webp?updatedAt=1737604489183",
+          order: 12
       },
       {
         name: "Baruna Hardiantoro, S.S.",
         position: "Bimbingan Konseling",
         imageUrl:
           "https://ik.imagekit.io/smaitgranada/Foto%20Guru%20SMA%20IT%20Granada/BarunaHardiantoroS.S.webp?updatedAt=1737604488312",
+          order: 13
       },
       {
         name: "Luqman Santoso, M.Pd",
         position: "Bimbingan Konseling",
         imageUrl:
           "https://ik.imagekit.io/smaitgranada/Foto%20Guru%20SMA%20IT%20Granada/LuqmanSantosoM.Pd-ezgif.com-jpg-to-webp-converter.webp?updatedAt=1737604489733",
+          order: 14
       },
       {
         name: "Muhammad Afif AlHaq, BA.",
         position: "Bimbingan Konseling",
         imageUrl:
           "https://ik.imagekit.io/smaitgranada/Foto%20Guru%20SMA%20IT%20Granada/MuhammadAfifAlHaqBA_-ezgif.com-jpg-to-webp-converter.webp?updatedAt=1737604483390",
+          order: 15
       },
       {
         name: "Muhammad Nur Aini, S.Pd.",
         position: "Bimbingan Konseling",
         imageUrl:
           "https://ik.imagekit.io/smaitgranada/Foto%20Guru%20SMA%20IT%20Granada/MuhammadNurAiniS.Pd-ezgif.com-jpg-to-webp-converter.webp?updatedAt=1737604483943",
+          order: 16
       },
       {
         name: "Muhammad Arnurzami, S.Pd.",
         position: "Bimbingan Konseling",
         imageUrl:
           "https://ik.imagekit.io/smaitgranada/Foto%20Guru%20SMA%20IT%20Granada/MuhammadArnurzamiS.Pd-ezgif.com-jpg-to-webp-converter.webp?updatedAt=1737604483442",
+          order: 17
       },
       {
         name: "Alexandrean, S.Pd.",
         position: "Bimbingan Konseling",
         imageUrl:
           "https://ik.imagekit.io/smaitgranada/Foto%20Guru%20SMA%20IT%20Granada/AlexandreanS.Pd.webp?updatedAt=1737604483454",
+          order: 18
       },
       {
         name: "Fachrul Hadi, S.Kom.",
         position: "Bimbingan Konseling",
         imageUrl:
           "https://ik.imagekit.io/smaitgranada/Foto%20Guru%20SMA%20IT%20Granada/FachrulHadiS.Kom.webp?updatedAt=1737604488746",
+          order: 19
       },
       {
         name: "Tanti Yoshefa, SP.",
         position: "Bimbingan Konseling",
         imageUrl:
           "https://ik.imagekit.io/smaitgranada/Foto%20Guru%20SMA%20IT%20Granada/TantiYoshefaSP-ezgif.com-jpg-to-webp-converter.webp?updatedAt=1737911664701",
+          order: 20
       },
       {
         name: "Miftahul Janah, S.Pd.",
         position: "Bimbingan Konseling",
         imageUrl:
           "https://ik.imagekit.io/smaitgranada/Foto%20Guru%20SMA%20IT%20Granada/MiftahulJanahS.Pd-ezgif.com-jpg-to-webp-converter.webp?updatedAt=1737911664996",
+          order: 21
       },
       {
         name: "Diah Rahmi Sari, S.HI. M.Pd.",
         position: "Bimbingan Konseling",
         imageUrl:
           "https://ik.imagekit.io/smaitgranada/Foto%20Guru%20SMA%20IT%20Granada/DiahRahmiSariS.HI.M.Pd-ezgif.com-jpg-to-webp-converter.webp?updatedAt=1737911664915",
+          order: 22
       },
       {
         name: "Ayu Paramita Rizkhi Handayani, S.Pd.",
         position: "Bimbingan Konseling",
         imageUrl:
           "https://ik.imagekit.io/smaitgranada/Foto%20Guru%20SMA%20IT%20Granada/AyuParamitaRizkhiHandayaniS.Pd-ezgif.com-jpg-to-webp-converter.webp?updatedAt=1737911664710",
+          order: 23
       },
       {
         name: "Recha Ammassa Ramadhani, S.Pd.",
         position: "Bimbingan Konseling",
         imageUrl:
           "https://ik.imagekit.io/smaitgranada/Foto%20Guru%20SMA%20IT%20Granada/RechaAmmassaRamadhaniS.Pd-ezgif.com-jpg-to-webp-converter.webp?updatedAt=1737911664813",
+          order: 24
       },
       {
         name: "Riska Tri Wulandari, S.Pd.",
         position: "Bimbingan Konseling",
         imageUrl:
           "https://ik.imagekit.io/smaitgranada/Foto%20Guru%20SMA%20IT%20Granada/RiskaTriWulandariS.Pd-ezgif.com-jpg-to-webp-converter.webp?updatedAt=1737911664678",
+          order: 25
       },
       {
         name: "Rochima, S.Kep.Ners.",
         position: "Bimbingan Konseling",
         imageUrl:
           "https://ik.imagekit.io/smaitgranada/Foto%20Guru%20SMA%20IT%20Granada/RochimaS.Kep.Ners-ezgif.com-jpg-to-webp-converter.webp?updatedAt=1737911669846",
+          order: 26
       },
       {
         name: "Farraz Ainun Fadhilla, M.H.",
         position: "Bimbingan Konseling",
         imageUrl:
           "https://ik.imagekit.io/smaitgranada/Foto%20Guru%20SMA%20IT%20Granada/FarrazAinunFadhillaM.H-ezgif.com-jpg-to-webp-converter.webp?updatedAt=1737911664792",
+          order: 27
       },
       {
         name: "Riski Vitria Ningsih, S.Psi.",
         position: "Bimbingan Konseling",
         imageUrl:
           "https://ik.imagekit.io/smaitgranada/Foto%20Guru%20SMA%20IT%20Granada/RiskiVitriaNingsihS.Psi-ezgif.com-jpg-to-webp-converter.webp?updatedAt=1737911669706",
+          order: 28
       },
       {
         name: "Susi Susanti, S.Pd.",
         position: "Bimbingan Konseling",
         imageUrl:
           "https://ik.imagekit.io/smaitgranada/Foto%20Guru%20SMA%20IT%20Granada/SusiSusantiS.Pd-ezgif.com-jpg-to-webp-converter.webp?updatedAt=1737911669882",
+          order: 29
       },
       {
         name: "Nur Rasyidatul Muqit Telda, M.Pd.",
         position: "Bimbingan Konseling",
         imageUrl:
           "https://ik.imagekit.io/smaitgranada/Foto%20Guru%20SMA%20IT%20Granada/NurRasyidatulMuqitTelda.M.Pd-ezgif.com-jpg-to-webp-converter.webp?updatedAt=1737911664974",
+          order: 30
       },
       {
         name: "Aidha Siti Khadijah, M.Pd.",
         position: "Bimbingan Konseling",
         imageUrl:
           "https://ik.imagekit.io/smaitgranada/Foto%20Guru%20SMA%20IT%20Granada/AidhaSitiKhadijahM.Pd-ezgif.com-jpg-to-webp-converter.webp?updatedAt=1737911664592",
+          order: 31
       },
       {
         name: "Al Mujahidatur Rifqiyah AlAhmadi, Lc.M.Pd.",
         position: "Bimbingan Konseling",
         imageUrl:
           "https://ik.imagekit.io/smaitgranada/Foto%20Guru%20SMA%20IT%20Granada/AlMujahidaturRifqiyahAlAhmadiLc.M.Pd-ezgif.com-jpg-to-webp-converter.webp?updatedAt=1737911664908",
+          order: 32
       },
     ];  
     await Promise.all(
-      staffData.map(data => 
+      staffData.map((data, index) => 
         prisma.staff.create({
           data: {
             name: data.name,
             position: data.position,
-            imageUrl: data.imageUrl
+            imageUrl: data.imageUrl,
+            order: index + 1
           }
         })
       )

@@ -2,7 +2,14 @@ const staffService = require("../services/staffService");
 
 async function getAllStaff(req, res) {
   try {
-    const result = await staffService.getAllStaff(req.query);
+    const queryParams = {
+      page: req.query.page,
+      limit: req.query.limit,
+      search: req.query.search,
+      position: req.query.position
+    };
+
+    const result = await staffService.getAllStaff(queryParams);
     
     if (!result.status) {
       return res.status(500).json({
