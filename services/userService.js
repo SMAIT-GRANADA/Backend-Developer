@@ -290,7 +290,11 @@ async function deleteUser(id) {
     const existingUser = await prisma.user.findUnique({
       where: { id: Number(id) },
       include: {
-        roles: true,
+        roles: {
+          include: {
+            role: true
+          }
+        },
         superAdmin: true
       }
     });
@@ -298,12 +302,17 @@ async function deleteUser(id) {
     if (!existingUser) {
       throw new Error('User tidak ditemukan');
     }
-
+    
     if (existingUser.superAdmin) {
-      throw new Error('Cannot delete superadmin user');
+      await prisma.superAdmin.delete({
+        where: { userId: Number(id) }
+      });
     }
 
     await prisma.$transaction([
+      prisma.passwordReset.deleteMany({
+        where: { userId: Number(id) }
+      }),
       prisma.token.updateMany({
         where: { 
           userId: Number(id),
@@ -346,8 +355,9 @@ async function deleteUser(id) {
       })
     ]);
 
-    return { message: 'User deleted successfully' };
+    return { message: 'User berhasil dihapus' };
   } catch (error) {
+    console.error('Delete user error details:', error);
     throw error;
   }
 }

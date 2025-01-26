@@ -269,14 +269,6 @@ async function deleteUser(req, res) {
         message: 'ID tidak valid'
       });
     }
-    const currentUser = await userService.getUserById(id);
-    if (currentUser.roles.some(r => r.role.name === 'superadmin')) {
-      return res.status(403).json({
-        status: false,
-        message: 'Tidak dapat menghapus akun superadmin'
-      });
-    }
-
     await userService.deleteUser(id);
 
     return res.json({
@@ -287,7 +279,14 @@ async function deleteUser(req, res) {
   } catch (error) {
     console.error('Delete user error:', error);
 
-    if (error.message.includes('not found')) {
+    if (error.message.includes('Tidak dapat menghapus')) {
+      return res.status(403).json({
+        status: false,
+        message: error.message
+      });
+    }
+
+    if (error.message.includes('tidak ditemukan')) {
       return res.status(404).json({
         status: false,
         message: error.message
