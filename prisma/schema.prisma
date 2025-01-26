@@ -31,8 +31,7 @@ model User {
   superAdmin    SuperAdmin?
   attendance    Attendance[]
   pointsGiven   StudentPoint[] @relation("TeacherPoints")
-  pointsReceived StudentPoint[] @relation("StudentPoints")
-  academicRecords AcademicRecord[]
+  students      Student[]    @relation("ParentStudents")
   salarySlips   SalarySlip[]    @relation("TeacherSlips")
   uploadsSlips  SalarySlip[]    @relation("AdminUploads")
 
@@ -103,7 +102,7 @@ model Staff {
   name        String
   position    String    
   imageUrl    String    @map("image_url")
-  order       Int       @default(0)  // Tambahkan field ini
+  order       Int       @default(0)
   isActive    Boolean   @default(true)
   createdAt   DateTime  @default(now()) @map("created_at")
   updatedAt   DateTime? @updatedAt @map("updated_at")
@@ -173,6 +172,23 @@ model Attendance {
 }
 
 // Student Management
+model Student {
+  id          Int       @id @default(autoincrement())
+  name        String
+  className   String    @map("class_name")
+  parentId    Int       @map("parent_id")
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime? @updatedAt @map("updated_at")
+
+  // Relasi
+  parent      User      @relation("ParentStudents", fields: [parentId], references: [id])
+  points      StudentPoint[]
+  academics   AcademicRecord[]
+
+  @@map("students")
+}
+
 model StudentPoint {
   id          Int       @id @default(autoincrement())
   studentId   Int       @map("student_id")
@@ -181,7 +197,8 @@ model StudentPoint {
   teacherId   Int       @map("teacher_id")
   createdAt   DateTime  @default(now()) @map("created_at")
   updatedAt   DateTime? @updatedAt @map("updated_at")
-  student     User      @relation("StudentPoints", fields: [studentId], references: [id])
+  
+  student     Student   @relation(fields: [studentId], references: [id])
   teacher     User      @relation("TeacherPoints", fields: [teacherId], references: [id])
 
   @@map("student_points")
@@ -195,7 +212,7 @@ model AcademicRecord {
   grades       Json
   createdAt    DateTime  @default(now()) @map("created_at")
   updatedAt    DateTime? @updatedAt @map("updated_at")
-  student      User      @relation(fields: [studentId], references: [id])
+  student      Student   @relation(fields: [studentId], references: [id])
 
   @@map("academic_records")
 }

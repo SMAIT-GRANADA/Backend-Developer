@@ -240,6 +240,47 @@ function isParent(req, res, next) {
   });
 }
 
+function pointAccess(action) {
+  return async (req, res, next) => {
+    try {
+      await checkAuth(req, res, () => {
+        const userRoles = req.user.roles;
+
+        switch (action) {
+          case "create":
+          case "update":
+          case "delete":
+            if (!userRoles.includes("guru")) {
+              return res.status(403).json({
+                status: false,
+                message: "Akses ditolak - Hanya Guru yang dapat mengelola point"
+              });
+            }
+            break;
+
+          case "read":
+            if (!userRoles.some(role => ["guru", "ortu"].includes(role))) {
+              return res.status(403).json({
+                status: false,
+                message: "Akses ditolak - Anda tidak memiliki akses untuk melihat data point"
+              });
+            }
+            break;
+
+          default:
+            return res.status(403).json({
+              status: false,
+              message: "Aksi tidak diizinkan"
+            });
+        }
+
+        next();
+      });
+    } catch (error) {
+      next(error);
+    }
+  };
+}
 module.exports = {
   optionalAuth,
   checkAuth,
@@ -250,4 +291,5 @@ module.exports = {
   isAdmin,
   isTeacher,
   isParent,
+  pointAccess
 };
