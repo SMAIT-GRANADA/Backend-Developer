@@ -1,36 +1,45 @@
-const pointService = require('../services/pointService');
+const { PrismaClient } = require("@prisma/client");
+const prisma = new PrismaClient();
 
-async function createPoint(req, res) {
+async function createPoint(data) {
   try {
-    const { name, className, points, description } = req.body;
-    const teacherId = req.user.id;
+    const { name, className, points, description, teacherId } = data;
+    
+    const student = await prisma.student.findFirst({
+      where: {
+        name,
+        className,
+        isActive: true
+      }
+    });
 
-    if (!name || !className || !points || !description) {
-      return res.status(400).json({
+    if (!student) {
+      return {
         status: false,
-        message: 'Semua field harus diisi'
-      });
+        message: 'Siswa tidak ditemukan'
+      };
     }
 
-    const result = await pointService.createPoint({
-      name,
-      className,
-      points,
-      description,
-      teacherId
+    const point = await prisma.studentPoint.create({
+      data: {
+        studentId: student.id,
+        points,
+        description,
+        teacherId
+      }
     });
 
-    if (!result.status) {
-      return res.status(400).json(result);
-    }
-
-    return res.status(201).json(result);
+    return {
+      status: true,
+      message: 'Point berhasil ditambahkan',
+      data: point
+    };
   } catch (error) {
-    console.error('Error in createPoint controller:', error);
-    return res.status(500).json({
+    console.error('Error in createPoint service:', error);
+    return {
       status: false,
-      message: 'Terjadi kesalahan internal server'
-    });
+      message: 'Gagal menambahkan point'
+    };
   }
 }
 
@@ -51,7 +60,6 @@ async function getPoints(userRole, userId) {
         };
       }
 
-      // Ambil point hanya untuk siswa yang merupakan anak dari orang tua tersebut
       const points = await prisma.studentPoint.findMany({
         where: {
           studentId: {
@@ -65,6 +73,7 @@ async function getPoints(userRole, userId) {
           createdAt: 'desc'
         }
       });
+
       const transformedPoints = points.map(point => ({
         id: point.id,
         points: point.points,
@@ -79,8 +88,11 @@ async function getPoints(userRole, userId) {
         data: transformedPoints
       };
     } 
-    else {
+    else if (userRole === 'guru') {
       const points = await prisma.studentPoint.findMany({
+        where: {
+          teacherId: userId
+        },
         include: {
           student: true
         },
@@ -103,6 +115,12 @@ async function getPoints(userRole, userId) {
         data: transformedPoints
       };
     }
+    else {
+      return {
+        status: false,
+        message: 'Role tidak memiliki akses untuk melihat data point'
+      };
+    }
   } catch (error) {
     console.error('Error in getPoints:', error);
     return {
@@ -112,61 +130,88 @@ async function getPoints(userRole, userId) {
   }
 }
 
-async function updatePoint(req, res) {
+async function updatePoint(pointId, data, teacherId) {
   try {
-    const { id } = req.params;
-    const teacherId = req.user.id;
-    
-    if (!id || isNaN(id)) {
-      return res.status(400).json({
-        status: false,
-        message: 'ID tidak valid'
-      });
-    }
-
-    const result = await pointService.updatePoint(id, req.body, teacherId);
-
-    if (!result.status) {
-      return res.status(404).json(result);
-    }
-
-    return res.status(200).json(result);
-  } catch (error) {
-    console.error('Error in updatePoint controller:', error);
-    return res.status(500).json({
-      status: false,
-      message: 'Terjadi kesalahan internal server'
+    const existingPoint = await prisma.studentPoint.findFirst({
+      where: {
+        id: Number(pointId),
+        teacherId: teacherId
+      }
     });
+
+    if (!existingPoint) {
+      return {
+        status: false,
+        message: 'Point tidak ditemukan atau Anda tidak memiliki akses'
+      };
+    }
+    const updatedPoint = await prisma.studentPoint.update({
+      where: {
+        id: Number(pointId)
+      },
+      data: {
+        points: data.points,
+        description: data.description
+      },
+      include: {
+        student: true
+      }
+    });
+
+    return {
+      status: true,
+      message: 'Point berhasil diupdate',
+      data: {
+        id: updatedPoint.id,
+        points: updatedPoint.points,
+        description: updatedPoint.description,
+        studentName: updatedPoint.student.name,
+        className: updatedPoint.student.className
+      }
+    };
+  } catch (error) {
+    console.error('Error in updatePoint service:', error);
+    return {
+      status: false,
+      message: 'Gagal mengupdate point'
+    };
   }
 }
 
-async function deletePoint(req, res) {
+async function deletePoint(pointId, teacherId) {
   try {
-    const { id } = req.params;
-    const teacherId = req.user.id;
-
-    if (!id || isNaN(id)) {
-      return res.status(400).json({
-        status: false,
-        message: 'ID tidak valid'
-      });
-    }
-
-    const result = await pointService.deletePoint(id, teacherId);
-
-    if (!result.status) {
-      return res.status(404).json(result);
-    }
-
-    return res.status(200).json(result);
-  } catch (error) {
-    console.error('Error in deletePoint controller:', error);
-    return res.status(500).json({
-      status: false,
-      message: 'Terjadi kesalahan internal server'
+    const existingPoint = await prisma.studentPoint.findFirst({
+      where: {
+        id: Number(pointId),
+        teacherId: teacherId
+      }
     });
+
+    if (!existingPoint) {
+      return {
+        status: false,
+        message: 'Point tidak ditemukan atau Anda tidak memiliki akses'
+      };
+    }
+
+    await prisma.studentPoint.delete({
+      where: {
+        id: Number(pointId)
+      }
+    });
+
+    return {
+      status: true,
+      message: 'Point berhasil dihapus'
+    };
+  } catch (error) {
+    console.error('Error in deletePoint service:', error);
+    return {
+      status: false,
+      message: 'Gagal menghapus point'
+    };
   }
-}
+} 
 
 module.exports = {
   createPoint,
