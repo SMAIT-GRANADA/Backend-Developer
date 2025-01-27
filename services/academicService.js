@@ -1,54 +1,85 @@
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 
-async function createAcademicRecord(data) {
+async function createAcademicRecord(data, teacherId) {
   try {
-    const student = await prisma.user.findFirst({
+    const { studentId, semester, academicYear, grades } = data;
+    const student = await prisma.student.findFirst({
       where: {
-        id: data.studentId,
-        roles: {
-          some: {
-            role: {
-              name: 'siswa'
-            }
-          }
-        }
+        id: studentId,
+        isActive: true
       }
     });
 
     if (!student) {
       return {
         status: false,
-        message: 'Siswa tidak ditemukan atau ID bukan merupakan siswa'
+        message: 'Siswa tidak ditemukan atau tidak aktif'
       };
     }
+
     const existingRecord = await prisma.academicRecord.findFirst({
       where: {
-        studentId: data.studentId,
-        semester: data.semester,
-        academicYear: data.academicYear
+        studentId,
+        semester,
+        academicYear
       }
     });
 
     if (existingRecord) {
+      const existingSubjects = Object.keys(existingRecord.grades);
+      const newSubjects = Object.keys(grades);
+      const overlappingSubjects = existingSubjects.filter(subject => 
+        newSubjects.includes(subject)
+      );
+
+      if (overlappingSubjects.length > 0) {
+        return {
+          status: false,
+          message: `Nilai untuk mata pelajaran ${overlappingSubjects.join(', ')} sudah ada. Gunakan fitur update untuk mengubah nilai.`
+        };
+      }
+      const updatedGrades = {
+        ...existingRecord.grades,
+        ...grades
+      };
+
+      const updatedRecord = await prisma.academicRecord.update({
+        where: { id: existingRecord.id },
+        data: {
+          grades: updatedGrades,
+          teacherId
+        },
+        include: {
+          student: true,
+          teacher: {
+            select: {
+              name: true
+            }
+          }
+        }
+      });
+
       return {
-        status: false,
-        message: 'Data akademik untuk semester dan tahun ajaran ini sudah ada'
+        status: true,
+        message: 'Nilai berhasil ditambahkan ke record yang ada',
+        data: updatedRecord
       };
     }
 
     const academicRecord = await prisma.academicRecord.create({
       data: {
-        studentId: data.studentId,
-        semester: data.semester,
-        academicYear: data.academicYear,
-        grades: data.grades
+        studentId,
+        semester,
+        academicYear,
+        grades,
+        teacherId
       },
       include: {
-        student: {
+        student: true,
+        teacher: {
           select: {
-            name: true,
-            email: true
+            name: true
           }
         }
       }
@@ -63,64 +94,90 @@ async function createAcademicRecord(data) {
     console.error('Error in createAcademicRecord:', error);
     return {
       status: false,
-      message: 'Terjadi kesalahan saat membuat data akademik'
+      message: 'Gagal membuat data akademik'
     };
   }
 }
 
-async function getAcademicRecords(filters = {}, userRole, userId) {
+async function getAcademicRecords(userRole, userId) {
   try {
-    let whereClause = {};
-
-    // Filter berdasarkan role
     if (userRole === 'ortu') {
-      const parentStudent = await prisma.user.findFirst({
+      const parentStudents = await prisma.student.findMany({
         where: {
-          id: userId,
-          roles: {
-            some: {
-              role: {
-                name: 'ortu'
-              }
-            }
-          }
+          parentId: userId,
+          isActive: true
         }
       });
 
-      if (!parentStudent) {
+      if (parentStudents.length === 0) {
         return {
           status: false,
-          message: 'Data orang tua tidak ditemukan'
+          message: 'Tidak ditemukan data siswa terkait'
         };
       }
 
-      whereClause.studentId = parentStudent.studentId;
+      const records = await prisma.academicRecord.findMany({
+        where: {
+          studentId: {
+            in: parentStudents.map(student => student.id)
+          }
+        },
+        include: {
+          student: true
+        },
+        orderBy: {
+          createdAt: 'desc'
+        }
+      });
+
+      const transformedRecords = records.map(record => ({
+        id: record.id,
+        studentName: record.student.name,
+        className: record.student.className,
+        semester: record.semester,
+        academicYear: record.academicYear,
+        grades: record.grades
+      }));
+
+      return {
+        status: true,
+        message: 'Data akademik berhasil diambil',
+        data: transformedRecords
+      };
+    }
+    // Jika role guru
+    else if (userRole === 'guru') {
+      const records = await prisma.academicRecord.findMany({
+        include: {
+          student: true
+        },
+        orderBy: {
+          createdAt: 'desc'
+        }
+      });
+
+      const transformedRecords = records.map(record => ({
+        id: record.id,
+        studentName: record.student.name,
+        className: record.student.className,
+        semester: record.semester,
+        academicYear: record.academicYear,
+        grades: record.grades
+      }));
+
+      return {
+        status: true,
+        message: 'Data akademik berhasil diambil',
+        data: transformedRecords
+      };
     }
 
-    if (filters.studentId) whereClause.studentId = parseInt(filters.studentId);
-    if (filters.semester) whereClause.semester = filters.semester;
-    if (filters.academicYear) whereClause.academicYear = filters.academicYear;
-
-    const records = await prisma.academicRecord.findMany({
-      where: whereClause,
-      include: {
-        student: {
-          select: {
-            name: true,
-            email: true
-          }
-        }
-      },
-      orderBy: {
-        createdAt: 'desc'
-      }
-    });
-
-    return {
-      status: true,
-      message: 'Data akademik berhasil diambil',
-      data: records
-    };
+    else {
+      return {
+        status: false,
+        message: 'Role tidak memiliki akses untuk melihat data akademik'
+      };
+    }
   } catch (error) {
     console.error('Error in getAcademicRecords:', error);
     return {
@@ -152,7 +209,6 @@ async function getAcademicRecordById(id, userRole, userId) {
       };
     }
 
-    // Validasi akses untuk orang tua
     if (userRole === 'ortu') {
       const parentStudent = await prisma.user.findFirst({
         where: {
@@ -189,10 +245,10 @@ async function getAcademicRecordById(id, userRole, userId) {
   }
 }
 
-async function updateAcademicRecord(id, data) {
+async function updateAcademicRecord(id, data, teacherId) {
   try {
     const existingRecord = await prisma.academicRecord.findUnique({
-      where: { id: parseInt(id) }
+      where: { id: Number(id) }
     });
 
     if (!existingRecord) {
@@ -202,14 +258,31 @@ async function updateAcademicRecord(id, data) {
       };
     }
 
+    const subjectToUpdate = Object.keys(data.grades)[0];
+    const existingGrades = existingRecord.grades;
+    
+    if (existingGrades[subjectToUpdate] && existingRecord.teacherId !== teacherId) {
+      return {
+        status: false,
+        message: `Anda tidak memiliki akses untuk mengubah nilai ${subjectToUpdate}`
+      };
+    }
+    const updatedGrades = {
+      ...existingGrades,
+      ...data.grades
+    };
+
     const updatedRecord = await prisma.academicRecord.update({
-      where: { id: parseInt(id) },
-      data,
+      where: { id: Number(id) },
+      data: {
+        grades: updatedGrades,
+        teacherId 
+      },
       include: {
-        student: {
+        student: true,
+        teacher: {
           select: {
-            name: true,
-            email: true
+            name: true
           }
         }
       }
@@ -224,7 +297,7 @@ async function updateAcademicRecord(id, data) {
     console.error('Error in updateAcademicRecord:', error);
     return {
       status: false,
-      message: 'Terjadi kesalahan saat memperbarui data akademik'
+      message: 'Gagal memperbarui data akademik'
     };
   }
 }

@@ -3,6 +3,7 @@ const academicService = require('../services/academicService');
 async function createAcademicRecord(req, res) {
   try {
     const { studentId, semester, academicYear, grades } = req.body;
+    const teacherId = req.user.id;
 
     if (!studentId || !semester || !academicYear || !grades) {
       return res.status(400).json({
@@ -19,7 +20,6 @@ async function createAcademicRecord(req, res) {
       });
     }
 
-    // Validasi semester
     if (!['Ganjil', 'Genap'].includes(semester)) {
       return res.status(400).json({
         status: false,
@@ -27,7 +27,23 @@ async function createAcademicRecord(req, res) {
       });
     }
 
-    const result = await academicService.createAcademicRecord(req.body);
+    if (typeof grades !== 'object' || Array.isArray(grades)) {
+      return res.status(400).json({
+        status: false,
+        message: 'Format nilai tidak valid'
+      });
+    }
+
+    for (const subject in grades) {
+      if (grades[subject] < 0 || grades[subject] > 100) {
+        return res.status(400).json({
+          status: false,
+          message: `Nilai ${subject} harus antara 0-100`
+        });
+      }
+    }
+
+    const result = await academicService.createAcademicRecord(req.body, teacherId);
 
     if (!result.status) {
       return res.status(400).json(result);
@@ -45,16 +61,10 @@ async function createAcademicRecord(req, res) {
 
 async function getAcademicRecords(req, res) {
   try {
-    const userRole = req.session.user.roles[0];
-    const userId = req.session.user.id;
+    const userRole = req.user.roles[0];
+    const userId = req.user.id;
     
-    const filters = {
-      studentId: req.query.studentId,
-      semester: req.query.semester,
-      academicYear: req.query.academicYear
-    };
-
-    const result = await academicService.getAcademicRecords(filters, userRole, userId);
+    const result = await academicService.getAcademicRecords(userRole, userId);
 
     if (!result.status) {
       return res.status(400).json(result);
@@ -102,6 +112,7 @@ async function getAcademicRecordById(req, res) {
 async function updateAcademicRecord(req, res) {
   try {
     const { id } = req.params;
+    const teacherId = req.user.id;
     
     if (!id || isNaN(id)) {
       return res.status(400).json({
@@ -110,7 +121,7 @@ async function updateAcademicRecord(req, res) {
       });
     }
 
-    const result = await academicService.updateAcademicRecord(id, req.body);
+    const result = await academicService.updateAcademicRecord(id, req.body, teacherId);
 
     if (!result.status) {
       return res.status(404).json(result);
