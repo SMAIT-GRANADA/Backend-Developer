@@ -34,7 +34,7 @@ model User {
   students      Student[]    @relation("ParentStudents")
   salarySlips   SalarySlip[]    @relation("TeacherSlips")
   uploadsSlips  SalarySlip[]    @relation("AdminUploads")
-
+  academicsGiven AcademicRecord[] @relation("TeacherAcademics")
   @@map("users")
 }
 model PasswordReset {
@@ -207,17 +207,18 @@ model StudentPoint {
 model AcademicRecord {
   id           Int       @id @default(autoincrement())
   studentId    Int       @map("student_id")
+  teacherId    Int       @map("teacher_id") 
   semester     String
   academicYear String    @map("academic_year")
   grades       Json
   createdAt    DateTime  @default(now()) @map("created_at")
   updatedAt    DateTime? @updatedAt @map("updated_at")
   student      Student   @relation(fields: [studentId], references: [id])
-
+  teacher      User      @relation("TeacherAcademics", fields: [teacherId], references: [id])
   @@map("academic_records")
 }
 
-// Teacher Management
+// Teacher Managementa
 model SalarySlip {
   id            Int       @id @default(autoincrement())
   teacherId     Int       @map("teacher_id")
