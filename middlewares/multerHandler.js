@@ -9,6 +9,7 @@ const fileFilter = (req, file, cb) => {
   }
 };
 
+// Konfigurasi upload
 const upload = multer({
   storage: storage,
   fileFilter: fileFilter,
@@ -17,6 +18,7 @@ const upload = multer({
   },
 });
 
+// Handler untuk media (multiple files)
 const multerHandler = (req, res, next) => {
   upload.fields([{ name: "media", maxCount: 5 }])(req, res, (err) => {
     if (err instanceof multer.MulterError) {
@@ -40,6 +42,7 @@ const multerHandler = (req, res, next) => {
   });
 };
 
+// Handler untuk single file
 const singleFileHandler = (req, res, next) => {
   upload.single('file')(req, res, (err) => {
     if (err instanceof multer.MulterError) {
