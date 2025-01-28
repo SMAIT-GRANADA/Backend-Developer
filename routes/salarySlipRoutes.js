@@ -6,22 +6,21 @@ const {
   isAdmin,
   checkRole,
 } = require("../middlewares/authMiddleware");
-const upload = require("../middlewares/fileUpload");
+const { singleFileHandler } = require("../middlewares/multerHandler");
 
 router.use(checkAuth);
 
-// Admin routes
 router.post(
   "/salary-slips",
   isAdmin,
-  upload.single("file"),
+  singleFileHandler,
   salarySlipController.createSalarySlip
 );
 
 router.put(
   "/salary-slips/:id",
   isAdmin,
-  upload.single("file"),
+  singleFileHandler,
   salarySlipController.updateSalarySlip
 );
 
@@ -31,7 +30,6 @@ router.delete(
   salarySlipController.deleteSalarySlip
 );
 
-// Shared route for both admin and teacher
 router.get(
   "/salary-slips",
   checkRole(["admin", "guru"]),

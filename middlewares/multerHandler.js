@@ -40,4 +40,30 @@ const multerHandler = (req, res, next) => {
   });
 };
 
-module.exports = multerHandler;
+const singleFileHandler = (req, res, next) => {
+  upload.single('file')(req, res, (err) => {
+    if (err instanceof multer.MulterError) {
+      if (err.code === 'LIMIT_FILE_SIZE') {
+        return res.status(400).json({
+          status: false,
+          message: "Ukuran file terlalu besar. Maksimal 10MB",
+        });
+      }
+      return res.status(400).json({
+        status: false,
+        message: err.message,
+      });
+    } else if (err) {
+      return res.status(500).json({
+        status: false,
+        message: err.message || "Terjadi kesalahan saat upload file",
+      });
+    }
+    next();
+  });
+};
+
+module.exports = {
+  multerHandler,
+  singleFileHandler
+};
