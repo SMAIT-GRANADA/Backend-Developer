@@ -29,13 +29,6 @@ async function optionalAuth(req, res, next) {
 
 async function checkAuth(req, res, next) {
   try {
-    if (!req.session.user) {
-      return res.status(401).json({
-        status: false,
-        message: "Silakan login terlebih dahulu",
-      });
-    }
-
     const authHeader = req.headers.authorization;
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
       return res.status(401).json({
@@ -45,35 +38,16 @@ async function checkAuth(req, res, next) {
     }
 
     const token = authHeader.split(' ')[1];
+    let decoded;
 
     try {
-      const decoded = await authService.verifyAccessToken(token);
-      if (decoded.id !== req.session.user.id) {
-        throw new Error('Token tidak valid');
-      }
-
-      req.user = {
-        id: decoded.id,
-        roles: decoded.roles,
-      };
-      next();
+      decoded = await authService.verifyAccessToken(token);
     } catch (error) {
-      if (req.session.user.refreshToken) {
+      if (req.session?.user?.refreshToken) {
         try {
           const newAccessToken = await authService.refreshAccessToken(req.session.user.refreshToken);
-          
-          req.session.user.accessToken = newAccessToken;
-
+          decoded = await authService.verifyAccessToken(newAccessToken);
           res.setHeader('New-Access-Token', newAccessToken);
-
-          const newDecoded = await authService.verifyAccessToken(newAccessToken);
-          req.user = {
-            id: newDecoded.id,
-            roles: newDecoded.roles,
-          };
-          
-          next();
-          return;
         } catch (refreshError) {
           req.session.destroy();
           return res.status(401).json({
@@ -81,13 +55,19 @@ async function checkAuth(req, res, next) {
             message: 'Sesi anda telah berakhir, silakan login kembali'
           });
         }
+      } else {
+        return res.status(401).json({
+          status: false,
+          message: 'Token tidak valid atau kadaluarsa'
+        });
       }
-
-      return res.status(401).json({
-        status: false,
-        message: 'Token tidak valid atau kadaluarsa'
-      });
     }
+
+    req.user = {
+      id: decoded.id,
+      roles: decoded.roles,
+    };
+    next();
   } catch (error) {
     return res.status(401).json({
       status: false,

@@ -1,6 +1,6 @@
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
-const { uploadPhotoToGCS, deletePhotoFromGCS } = require('../utils/gcs');
+const { uploadPhotoToGCS, deletePhotoFromGCS } = require('../config/gcs');
 
 async function createSalarySlip(data, uploadedBy) {
   try {
