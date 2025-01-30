@@ -15,6 +15,7 @@ const staffRoutes = require("./routes/staffRoutes");
 const quoteRoutes = require("./routes/quoteRoutes");
 const pointRouter = require("./routes/pointRoutes");
 const salarySlipRoutes = require("./routes/salarySlipRoutes")
+const studentRoutes = require('./routes/studentRoutes');
 const app = express();
 
 const pool = new Pool({
@@ -62,7 +63,7 @@ const sessionConfig = {
 app.use(session(sessionConfig));
 
 // Routes
-const routers = [newsRouter, staffRoutes, quoteRoutes, userRouter, academicRouter, attendanceRouter, pointRouter, salarySlipRoutes];
+const routers = [newsRouter, staffRoutes, quoteRoutes, userRouter, academicRouter, attendanceRouter, pointRouter, salarySlipRoutes, studentRoutes];
 routers.forEach((router) => app.use("/api/v1", router));
 
 
