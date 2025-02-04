@@ -174,20 +174,19 @@ model Attendance {
 // Student Management
 model Student {
   id          Int       @id @default(autoincrement())
-  name        String
+  nisn        String    @unique
   className   String    @map("class_name")
   parentId    Int?      @map("parent_id")
   isActive    Boolean   @default(true)
   createdAt   DateTime  @default(now()) @map("created_at")
   updatedAt   DateTime? @updatedAt @map("updated_at")
 
-  // Relasi
+  // Relations
   parent      User?     @relation("ParentStudents", fields: [parentId], references: [id])
   points      StudentPoint[]
   academics   AcademicRecord[]
 
-  // Indexes untuk optimasi pencarian
-  @@index([name])
+  @@index([nisn])
   @@index([className])
   @@index([parentId])
   @@index([isActive])
