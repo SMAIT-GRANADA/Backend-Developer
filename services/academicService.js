@@ -1,4 +1,4 @@
-const { PrismaClient } = require('@prisma/client');
+const { PrismaClient } = require("@prisma/client");
 const prisma = new PrismaClient();
 
 async function createAcademicRecord(data, teacherId) {
@@ -7,14 +7,14 @@ async function createAcademicRecord(data, teacherId) {
     const student = await prisma.student.findFirst({
       where: {
         id: studentId,
-        isActive: true
-      }
+        isActive: true,
+      },
     });
 
     if (!student) {
       return {
         status: false,
-        message: 'Siswa tidak ditemukan atau tidak aktif'
+        message: "Siswa tidak ditemukan atau tidak aktif",
       };
     }
 
@@ -22,48 +22,68 @@ async function createAcademicRecord(data, teacherId) {
       where: {
         studentId,
         semester,
-        academicYear
-      }
+        academicYear,
+      },
     });
 
     if (existingRecord) {
       const existingSubjects = Object.keys(existingRecord.grades);
       const newSubjects = Object.keys(grades);
-      const overlappingSubjects = existingSubjects.filter(subject => 
+      const overlappingSubjects = existingSubjects.filter((subject) =>
         newSubjects.includes(subject)
       );
 
       if (overlappingSubjects.length > 0) {
         return {
           status: false,
-          message: `Nilai untuk mata pelajaran ${overlappingSubjects.join(', ')} sudah ada. Gunakan fitur update untuk mengubah nilai.`
+          message: `Nilai untuk mata pelajaran ${overlappingSubjects.join(
+            ", "
+          )} sudah ada. Gunakan fitur update untuk mengubah nilai.`,
         };
       }
+
       const updatedGrades = {
         ...existingRecord.grades,
-        ...grades
+        ...grades,
       };
 
       const updatedRecord = await prisma.academicRecord.update({
         where: { id: existingRecord.id },
         data: {
           grades: updatedGrades,
-          teacherId
+          teacherId,
         },
         include: {
-          student: true,
+          student: {
+            select: {
+              name: true,
+              className: true,
+            },
+          },
           teacher: {
             select: {
-              name: true
-            }
-          }
-        }
+              name: true,
+            },
+          },
+        },
       });
+
+      const formattedRecord = {
+        id: updatedRecord.id,
+        studentName: updatedRecord.student.name,
+        className: updatedRecord.student.className,
+        semester: updatedRecord.semester,
+        academicYear: updatedRecord.academicYear,
+        grades: updatedRecord.grades,
+        teacherName: updatedRecord.teacher.name,
+        createdAt: updatedRecord.createdAt,
+        updatedAt: updatedRecord.updatedAt,
+      };
 
       return {
         status: true,
-        message: 'Nilai berhasil ditambahkan ke record yang ada',
-        data: updatedRecord
+        message: "Nilai berhasil ditambahkan ke record yang ada",
+        data: formattedRecord,
       };
     }
 
@@ -73,34 +93,53 @@ async function createAcademicRecord(data, teacherId) {
         semester,
         academicYear,
         grades,
-        teacherId
+        teacherId,
       },
       include: {
-        student: true,
+        student: {
+          select: {
+            name: true,
+            className: true,
+          },
+        },
         teacher: {
           select: {
-            name: true
-          }
-        }
-      }
+            name: true,
+          },
+        },
+      },
     });
+
+    const formattedRecord = {
+      id: academicRecord.id,
+      studentName: academicRecord.student.name,
+      className: academicRecord.student.className,
+      semester: academicRecord.semester,
+      academicYear: academicRecord.academicYear,
+      grades: academicRecord.grades,
+      teacherName: academicRecord.teacher.name,
+      createdAt: academicRecord.createdAt,
+      updatedAt: academicRecord.updatedAt,
+    };
 
     return {
       status: true,
-      message: 'Data akademik berhasil dibuat',
-      data: academicRecord
+      message: "Data akademik berhasil dibuat",
+      data: formattedRecord,
     };
   } catch (error) {
-    console.error('Error in createAcademicRecord:', error);
+    console.error("Error in createAcademicRecord:", error);
     return {
       status: false,
-      message: 'Gagal membuat data akademik'
+      message: "Gagal membuat data akademik",
     };
   }
 }
 
 async function getAcademicRecords(userRole, userId) {
   try {
+    let records;
+    
     if (userRole === 'ortu') {
       const parentStudents = await prisma.student.findMany({
         where: {
@@ -116,128 +155,69 @@ async function getAcademicRecords(userRole, userId) {
         };
       }
 
-      const records = await prisma.academicRecord.findMany({
+      records = await prisma.academicRecord.findMany({
         where: {
           studentId: {
             in: parentStudents.map(student => student.id)
           }
         },
         include: {
-          student: true
-        },
-        orderBy: {
-          createdAt: 'desc'
-        }
-      });
-
-      const transformedRecords = records.map(record => ({
-        id: record.id,
-        studentName: record.student.name,
-        className: record.student.className,
-        semester: record.semester,
-        academicYear: record.academicYear,
-        grades: record.grades
-      }));
-
-      return {
-        status: true,
-        message: 'Data akademik berhasil diambil',
-        data: transformedRecords
-      };
-    }
-    // Jika role guru
-    else if (userRole === 'guru') {
-      const records = await prisma.academicRecord.findMany({
-        include: {
-          student: true
-        },
-        orderBy: {
-          createdAt: 'desc'
-        }
-      });
-
-      const transformedRecords = records.map(record => ({
-        id: record.id,
-        studentName: record.student.name,
-        className: record.student.className,
-        semester: record.semester,
-        academicYear: record.academicYear,
-        grades: record.grades
-      }));
-
-      return {
-        status: true,
-        message: 'Data akademik berhasil diambil',
-        data: transformedRecords
-      };
-    }
-
-    else {
-      return {
-        status: false,
-        message: 'Role tidak memiliki akses untuk melihat data akademik'
-      };
-    }
-  } catch (error) {
-    console.error('Error in getAcademicRecords:', error);
-    return {
-      status: false,
-      message: 'Terjadi kesalahan saat mengambil data akademik'
-    };
-  }
-}
-
-async function getAcademicRecordById(id, userRole, userId) {
-  try {
-    const record = await prisma.academicRecord.findUnique({
-      where: { id: parseInt(id) },
-      include: {
-        student: {
-          select: {
-            id: true,
-            name: true,
-            email: true
-          }
-        }
-      }
-    });
-
-    if (!record) {
-      return {
-        status: false,
-        message: 'Data akademik tidak ditemukan'
-      };
-    }
-
-    if (userRole === 'ortu') {
-      const parentStudent = await prisma.user.findFirst({
-        where: {
-          id: userId,
-          roles: {
-            some: {
-              role: {
-                name: 'ortu'
-              }
+          student: {
+            select: {
+              name: true,
+              className: true
+            }
+          },
+          teacher: {
+            select: {
+              name: true
             }
           }
+        },
+        orderBy: {
+          createdAt: 'desc'
         }
       });
-
-      if (parentStudent?.studentId !== record.studentId) {
-        return {
-          status: false,
-          message: 'Anda tidak memiliki akses ke data ini'
-        };
-      }
+    } else if (userRole === 'guru' || userRole === 'superadmin') {
+      records = await prisma.academicRecord.findMany({
+        include: {
+          student: {
+            select: {
+              name: true,
+              className: true
+            }
+          },
+          teacher: {
+            select: {
+              name: true
+            }
+          }
+        },
+        orderBy: {
+          createdAt: 'desc'
+        }
+      });
     }
+
+    const transformedRecords = records.map(record => ({
+      id: record.id,
+      studentName: record.student.name,
+      className: record.student.className,
+      semester: record.semester,
+      academicYear: record.academicYear,
+      grades: record.grades,
+      teacherName: record.teacher.name,
+      createdAt: record.createdAt,
+      updatedAt: record.updatedAt
+    }));
 
     return {
       status: true,
       message: 'Data akademik berhasil diambil',
-      data: record
+      data: transformedRecords
     };
   } catch (error) {
-    console.error('Error in getAcademicRecordById:', error);
+    console.error('Error in getAcademicRecords:', error);
     return {
       status: false,
       message: 'Terjadi kesalahan saat mengambil data akademik'
@@ -248,56 +228,76 @@ async function getAcademicRecordById(id, userRole, userId) {
 async function updateAcademicRecord(id, data, teacherId) {
   try {
     const existingRecord = await prisma.academicRecord.findUnique({
-      where: { id: Number(id) }
+      where: { id: Number(id) },
+      include: {
+        teacher: true,
+      },
     });
 
     if (!existingRecord) {
       return {
         status: false,
-        message: 'Data akademik tidak ditemukan'
+        message: "Data akademik tidak ditemukan",
+      };
+    }
+
+    if (existingRecord.teacherId !== teacherId) {
+      return {
+        status: false,
+        message: "Anda tidak memiliki akses untuk mengubah nilai ini",
       };
     }
 
     const subjectToUpdate = Object.keys(data.grades)[0];
     const existingGrades = existingRecord.grades;
-    
-    if (existingGrades[subjectToUpdate] && existingRecord.teacherId !== teacherId) {
-      return {
-        status: false,
-        message: `Anda tidak memiliki akses untuk mengubah nilai ${subjectToUpdate}`
-      };
-    }
     const updatedGrades = {
       ...existingGrades,
-      ...data.grades
+      [subjectToUpdate]: data.grades[subjectToUpdate],
     };
 
     const updatedRecord = await prisma.academicRecord.update({
       where: { id: Number(id) },
       data: {
         grades: updatedGrades,
-        teacherId 
+        teacherId,
       },
       include: {
-        student: true,
+        student: {
+          select: {
+            name: true,
+            className: true,
+          },
+        },
         teacher: {
           select: {
-            name: true
-          }
-        }
-      }
+            name: true,
+          },
+        },
+      },
     });
+
+    const formattedRecord = {
+      id: updatedRecord.id,
+      studentName: updatedRecord.student.name,
+      className: updatedRecord.student.className,
+      semester: updatedRecord.semester,
+      academicYear: updatedRecord.academicYear,
+      grades: updatedRecord.grades,
+      teacherName: updatedRecord.teacher.name,
+      createdAt: updatedRecord.createdAt,
+      updatedAt: updatedRecord.updatedAt,
+    };
 
     return {
       status: true,
-      message: 'Data akademik berhasil diperbarui',
-      data: updatedRecord
+      message: "Data akademik berhasil diperbarui",
+      data: formattedRecord,
     };
   } catch (error) {
-    console.error('Error in updateAcademicRecord:', error);
+    console.error("Error in updateAcademicRecord:", error);
     return {
       status: false,
-      message: 'Gagal memperbarui data akademik'
+      message: "Gagal memperbarui data akademik",
     };
   }
 }
@@ -305,32 +305,33 @@ async function updateAcademicRecord(id, data, teacherId) {
 async function deleteAcademicRecord(id) {
   try {
     const existingRecord = await prisma.academicRecord.findUnique({
-      where: { id: parseInt(id) }
+      where: { id: parseInt(id) },
     });
 
     if (!existingRecord) {
       return {
         status: false,
-        message: 'Data akademik tidak ditemukan'
+        message: "Data akademik tidak ditemukan",
       };
     }
 
     await prisma.academicRecord.delete({
-      where: { id: parseInt(id) }
+      where: { id: parseInt(id) },
     });
 
     return {
       status: true,
-      message: 'Data akademik berhasil dihapus'
+      message: "Data akademik berhasil dihapus",
     };
   } catch (error) {
-    console.error('Error in deleteAcademicRecord:', error);
+    console.error("Error in deleteAcademicRecord:", error);
     return {
       status: false,
-      message: 'Terjadi kesalahan saat menghapus data akademik'
+      message: "Terjadi kesalahan saat menghapus data akademik",
     };
   }
 }
+
 async function getAcademicRecordById(id, userRole, userId) {
   try {
     const record = await prisma.academicRecord.findUnique({
@@ -341,41 +342,47 @@ async function getAcademicRecordById(id, userRole, userId) {
             id: true,
             name: true,
             className: true,
-            isActive: true
-          }
+            isActive: true,
+          },
         },
         teacher: {
           select: {
             id: true,
-            name: true
-          }
-        }
-      }
+            name: true,
+          },
+        },
+      },
     });
 
     if (!record) {
       return {
         status: false,
-        message: 'Data akademik tidak ditemukan'
+        message: "Data akademik tidak ditemukan",
       };
     }
 
-    if (userRole === 'ortu') {
+    if (userRole === "ortu") {
       const parentStudent = await prisma.student.findFirst({
         where: {
           id: record.studentId,
           parentId: userId,
-          isActive: true
-        }
+          isActive: true,
+        },
       });
 
       if (!parentStudent) {
         return {
           status: false,
-          message: 'Anda tidak memiliki akses ke data ini'
+          message: "Anda tidak memiliki akses ke data ini",
         };
       }
+    } else if (userRole === "guru" && record.teacherId !== userId) {
+      return {
+        status: false,
+        message: "Anda tidak memiliki akses ke data ini",
+      };
     }
+
     const formattedRecord = {
       id: record.id,
       studentName: record.student.name,
@@ -385,19 +392,19 @@ async function getAcademicRecordById(id, userRole, userId) {
       grades: record.grades,
       teacherName: record.teacher.name,
       createdAt: record.createdAt,
-      updatedAt: record.updatedAt
+      updatedAt: record.updatedAt,
     };
 
     return {
       status: true,
-      message: 'Data akademik berhasil diambil',
-      data: formattedRecord
+      message: "Data akademik berhasil diambil",
+      data: formattedRecord,
     };
   } catch (error) {
-    console.error('Error in getAcademicRecordById:', error);
+    console.error("Error in getAcademicRecordById:", error);
     return {
       status: false,
-      message: 'Terjadi kesalahan saat mengambil data akademik'
+      message: "Terjadi kesalahan saat mengambil data akademik",
     };
   }
 }
@@ -407,5 +414,5 @@ module.exports = {
   getAcademicRecords,
   getAcademicRecordById,
   updateAcademicRecord,
-  deleteAcademicRecord
+  deleteAcademicRecord,
 };
