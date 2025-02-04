@@ -83,8 +83,8 @@ async function getAcademicRecords(req, res) {
 async function getAcademicRecordById(req, res) {
   try {
     const { id } = req.params;
-    const userRole = req.session.user.roles[0];
-    const userId = req.session.user.id;
+    const userRole = req.user.roles[0];
+    const userId = req.user.id;
 
     if (!id || isNaN(id)) {
       return res.status(400).json({
