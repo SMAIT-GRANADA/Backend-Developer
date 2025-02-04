@@ -331,6 +331,76 @@ async function deleteAcademicRecord(id) {
     };
   }
 }
+async function getAcademicRecordById(id, userRole, userId) {
+  try {
+    const record = await prisma.academicRecord.findUnique({
+      where: { id: parseInt(id) },
+      include: {
+        student: {
+          select: {
+            id: true,
+            name: true,
+            className: true,
+            isActive: true
+          }
+        },
+        teacher: {
+          select: {
+            id: true,
+            name: true
+          }
+        }
+      }
+    });
+
+    if (!record) {
+      return {
+        status: false,
+        message: 'Data akademik tidak ditemukan'
+      };
+    }
+
+    if (userRole === 'ortu') {
+      const parentStudent = await prisma.student.findFirst({
+        where: {
+          id: record.studentId,
+          parentId: userId,
+          isActive: true
+        }
+      });
+
+      if (!parentStudent) {
+        return {
+          status: false,
+          message: 'Anda tidak memiliki akses ke data ini'
+        };
+      }
+    }
+    const formattedRecord = {
+      id: record.id,
+      studentName: record.student.name,
+      className: record.student.className,
+      semester: record.semester,
+      academicYear: record.academicYear,
+      grades: record.grades,
+      teacherName: record.teacher.name,
+      createdAt: record.createdAt,
+      updatedAt: record.updatedAt
+    };
+
+    return {
+      status: true,
+      message: 'Data akademik berhasil diambil',
+      data: formattedRecord
+    };
+  } catch (error) {
+    console.error('Error in getAcademicRecordById:', error);
+    return {
+      status: false,
+      message: 'Terjadi kesalahan saat mengambil data akademik'
+    };
+  }
+}
 
 module.exports = {
   createAcademicRecord,
