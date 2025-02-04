@@ -54,18 +54,24 @@ const uploadPhotoToGCS = async (photoBase64, userId) => {
   }
 };
 
-const deletePhotoFromGCS = async (fileUrl) => {
+async function deletePhotoFromGCS(url) {
   try {
-    const fileName = fileUrl.split('/').pop();
-    const filePath = `attendance/${fileName}`;
+    if (!url) return;
     
-    const file = bucket.file(filePath);
+    const fileName = url.split('/').pop();
+    const file = bucket.file(`salary-slips/${fileName}`);
+    
+    const exists = await file.exists();
+    if (!exists[0]) {
+      console.log(`File ${fileName} does not exist in GCS`);
+      return;
+    }
+    
     await file.delete();
   } catch (error) {
     console.error('Error deleting from GCS:', error);
-    throw new Error(`Failed to delete photo: ${error.message}`);
   }
-};
+}
 
 module.exports = {
   storage,
