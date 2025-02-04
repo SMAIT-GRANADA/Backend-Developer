@@ -116,8 +116,7 @@ async function updateClass(students) {
     const studentIds = students.map(s => Number(s.id));
     const existingStudents = await prisma.student.findMany({
       where: {
-        id: { in: studentIds },
-        isActive: true
+        id: { in: studentIds }
       }
     });
 
@@ -127,7 +126,7 @@ async function updateClass(students) {
       
       return {
         status: false,
-        message: `Beberapa siswa tidak ditemukan atau tidak aktif: ID ${notFoundIds.join(', ')}`
+        message: `Beberapa siswa tidak ditemukan: ID ${notFoundIds.join(', ')}`
       };
     }
 
@@ -138,7 +137,9 @@ async function updateClass(students) {
             id: Number(student.id)
           },
           data: {
-            className: student.className
+            ...(student.className && { className: student.className }),
+            ...(student.name && { name: student.name }),
+            ...(student.isActive !== undefined && { isActive: student.isActive })
           },
           include: {
             parent: {
@@ -154,12 +155,12 @@ async function updateClass(students) {
 
     return {
       status: true,
-      message: `${result.length} siswa berhasil diperbarui kelasnya`,
+      message: `${result.length} siswa berhasil diperbarui`,
       data: result
     };
 
   } catch (error) {
-    console.error('Update class service error:', error);
+    console.error('Update students service error:', error);
     throw error;
   }
 }
