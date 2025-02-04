@@ -2,8 +2,33 @@ const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 const { uploadPhotoToGCS, deletePhotoFromGCS } = require('../config/gcs');
 
+async function isAdmin(userId) {
+  const user = await prisma.user.findFirst({
+    where: {
+      id: userId,
+      roles: {
+        some: {
+          role: {
+            name: 'admin'
+          }
+        }
+      },
+      isActive: true
+    }
+  });
+  return !!user;
+}
+
 async function createSalarySlip(data, uploadedBy) {
   try {
+    const admin = await isAdmin(uploadedBy);
+    if (!admin) {
+      return {
+        status: false,
+        message: 'Unauthorized: Only admin can create salary slips'
+      };
+    }
+
     const { teacherId, period, fileBase64 } = data;
 
     const teacher = await prisma.user.findFirst({
@@ -68,8 +93,15 @@ async function createSalarySlip(data, uploadedBy) {
 async function getSalarySlips(userId, userRole) {
   try {
     let whereClause = {};
+    
     if (userRole === 'guru') {
       whereClause.teacherId = userId;
+    } else if (userRole === 'admin') {
+    } else {
+      return {
+        status: false,
+        message: 'Unauthorized: Invalid role for accessing salary slips'
+      };
     }
 
     const slips = await prisma.salarySlip.findMany({
@@ -106,8 +138,16 @@ async function getSalarySlips(userId, userRole) {
   }
 }
 
-async function updateSalarySlip(id, data) {
+async function updateSalarySlip(id, data, userId) {
   try {
+    const admin = await isAdmin(userId);
+    if (!admin) {
+      return {
+        status: false,
+        message: 'Unauthorized: Only admin can update salary slips'
+      };
+    }
+
     const existingSlip = await prisma.salarySlip.findUnique({
       where: { id: parseInt(id) }
     });
@@ -123,7 +163,13 @@ async function updateSalarySlip(id, data) {
     let slipImageUrl = existingSlip.slipImageUrl;
 
     if (fileBase64) {
-      await deletePhotoFromGCS(existingSlip.slipImageUrl);
+      try {
+        if (existingSlip.slipImageUrl) {
+          await deletePhotoFromGCS(existingSlip.slipImageUrl);
+        }
+      } catch (error) {
+        console.error('Error deleting old file:', error);
+      }
       slipImageUrl = await uploadPhotoToGCS(fileBase64, `salary-slips/${existingSlip.teacherId}`);
     }
 
@@ -162,8 +208,16 @@ async function updateSalarySlip(id, data) {
   }
 }
 
-async function deleteSalarySlip(id) {
+async function deleteSalarySlip(id, userId) {
   try {
+    const admin = await isAdmin(userId);
+    if (!admin) {
+      return {
+        status: false,
+        message: 'Unauthorized: Only admin can delete salary slips'
+      };
+    }
+
     const slip = await prisma.salarySlip.findUnique({
       where: { id: parseInt(id) }
     });
@@ -175,7 +229,14 @@ async function deleteSalarySlip(id) {
       };
     }
 
-    await deletePhotoFromGCS(slip.slipImageUrl);
+    try {
+      if (slip.slipImageUrl) {
+        await deletePhotoFromGCS(slip.slipImageUrl);
+      }
+    } catch (error) {
+      console.error('Error deleting file from GCS:', error);
+    }
+
     await prisma.salarySlip.delete({
       where: { id: parseInt(id) }
     });
@@ -185,7 +246,6 @@ async function deleteSalarySlip(id) {
       message: 'Slip gaji berhasil dihapus'
     };
   } catch (error) {
-    console.error('Error in deleteSalarySlip:', error);
     return {
       status: false,
       message: 'Gagal menghapus slip gaji'

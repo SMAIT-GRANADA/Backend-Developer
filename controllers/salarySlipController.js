@@ -72,6 +72,8 @@ async function updateSalarySlip(req, res) {
         message: 'ID tidak valid'
       });
     }
+
+    // Validasi format periode (YYYY-MM)
     if (!/^\d{4}-\d{2}$/.test(period)) {
       return res.status(400).json({
         status: false,
@@ -86,7 +88,7 @@ async function updateSalarySlip(req, res) {
     const result = await salarySlipService.updateSalarySlip(id, {
       period,
       fileBase64
-    });
+    }, req.user.id);
 
     if (!result.status) {
       return res.status(404).json(result);
@@ -112,9 +114,7 @@ async function deleteSalarySlip(req, res) {
         message: 'ID tidak valid'
       });
     }
-
-    const result = await salarySlipService.deleteSalarySlip(id);
-
+    const result = await salarySlipService.deleteSalarySlip(id, req.user.id);
     if (!result.status) {
       return res.status(404).json(result);
     }
