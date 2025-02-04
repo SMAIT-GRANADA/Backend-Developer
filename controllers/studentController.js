@@ -72,11 +72,12 @@ async function updateClass(req, res) {
         message: 'Data siswa tidak valid'
       });
     }
+    
     for (const student of students) {
-      if (!student.id || !student.className) {
+      if (!student.id || (!student.className && !student.name && student.isActive === undefined)) {
         return res.status(400).json({
           status: false,
-          message: 'ID siswa dan kelas baru harus diisi'
+          message: 'ID siswa dan minimal satu field untuk diupdate (kelas, nama, atau status) harus diisi'
         });
       }
     }
@@ -90,7 +91,7 @@ async function updateClass(req, res) {
     return res.json(result);
 
   } catch (error) {
-    console.error('Update class error:', error);
+    console.error('Update students error:', error);
     return res.status(500).json({
       status: false,
       message: 'Terjadi kesalahan internal server'
