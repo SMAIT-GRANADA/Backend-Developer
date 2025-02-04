@@ -37,10 +37,16 @@ async function createBulkStudents(req, res) {
       });
     }
     for (const student of students) {
-      if (!student.name || !student.className) {
+      if (!student.nisn || !student.name || !student.className) {
         return res.status(400).json({
           status: false,
-          message: 'Nama dan kelas siswa harus diisi'
+          message: 'NISN, nama, dan kelas siswa harus diisi'
+        });
+      }
+      if (!/^\d{10}$/.test(student.nisn)) {
+        return res.status(400).json({
+          status: false,
+          message: `NISN ${student.nisn} tidak valid. NISN harus 10 digit angka`
         });
       }
     }

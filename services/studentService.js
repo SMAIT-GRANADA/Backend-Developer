@@ -7,6 +7,7 @@ async function getAllStudents(page, limit, search, className, hasParent) {
       isActive: true,
       ...(search && {
         OR: [
+          { nisn: { contains: search, mode: 'insensitive' } },
           { name: { contains: search, mode: 'insensitive' } },
           { className: { contains: search, mode: 'insensitive' } }
         ]
@@ -61,20 +62,20 @@ async function getAllStudents(page, limit, search, className, hasParent) {
 
 async function createBulkStudents(students) {
   try {
-    const duplicateNames = students.map(s => s.name.toLowerCase());
-    const hasDuplicates = new Set(duplicateNames).size !== duplicateNames.length;
+    const duplicateNISNs = students.map(s => s.nisn);
+    const hasDuplicates = new Set(duplicateNISNs).size !== duplicateNISNs.length;
     
     if (hasDuplicates) {
       return {
         status: false,
-        message: 'Terdapat nama siswa yang sama dalam data'
+        message: 'Terdapat NISN yang sama dalam data'
       };
     }
+
     const existingStudents = await prisma.student.findMany({
       where: {
-        name: {
-          in: students.map(s => s.name),
-          mode: 'insensitive'
+        nisn: {
+          in: students.map(s => s.nisn)
         },
         isActive: true
       }
@@ -83,7 +84,7 @@ async function createBulkStudents(students) {
     if (existingStudents.length > 0) {
       return {
         status: false,
-        message: `Siswa dengan nama ${existingStudents.map(s => s.name).join(', ')} sudah terdaftar`
+        message: `Siswa dengan NISN ${existingStudents.map(s => s.nisn).join(', ')} sudah terdaftar`
       };
     }
 
@@ -91,6 +92,7 @@ async function createBulkStudents(students) {
       students.map(student =>
         prisma.student.create({
           data: {
+            nisn: student.nisn,
             name: student.name,
             className: student.className,
             isActive: true
