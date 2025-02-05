@@ -44,6 +44,7 @@ async function getAllStudents(page, limit, search, className, hasParent) {
     const totalPages = Math.ceil(total / limit);
 
     return {
+      status: true,
       data: students,
       meta: {
         total,
@@ -115,7 +116,12 @@ async function createBulkStudents(students) {
 
 async function updateClass(students) {
   try {
-    const studentIds = students.map(s => Number(s.id));
+    const validatedStudents = students.map(student => ({
+      ...student,
+      id: Number(student.id),
+      parentId: student.parentId ? Number(student.parentId) : null
+    }));
+    const studentIds = validatedStudents.map(s => s.id);
     const existingStudents = await prisma.student.findMany({
       where: {
         id: { in: studentIds }
@@ -125,7 +131,7 @@ async function updateClass(students) {
       }
     });
 
-    if (existingStudents.length !== students.length) {
+    if (existingStudents.length !== validatedStudents.length) {
       const foundIds = existingStudents.map(s => s.id);
       const notFoundIds = studentIds.filter(id => !foundIds.includes(id));
       
@@ -134,22 +140,42 @@ async function updateClass(students) {
         message: `Beberapa siswa tidak ditemukan: ID ${notFoundIds.join(', ')}`
       };
     }
+    if (validatedStudents.some(s => s.parentId)) {
+      const parentIds = validatedStudents
+        .map(s => s.parentId)
+        .filter(id => id !== null);
+      
+      const existingParents = await prisma.user.findMany({
+        where: {
+          id: { in: parentIds }
+        }
+      });
 
-    const result = await prisma.$transaction(
-      students.map(student => {
-        const existingStudent = existingStudents.find(es => es.id === Number(student.id));
+      if (existingParents.length !== new Set(parentIds).size) {
+        const foundParentIds = existingParents.map(p => p.id);
+        const invalidParentIds = parentIds.filter(id => !foundParentIds.includes(id));
         
+        return {
+          status: false,
+          message: `Beberapa ID orang tua tidak valid: ${invalidParentIds.join(', ')}`
+        };
+      }
+    }
+    const result = await prisma.$transaction(
+      validatedStudents.map(student => {
+        const existingStudent = existingStudents.find(es => es.id === student.id);
+        const updateData = {
+          ...(student.className && { className: student.className }),
+          ...(student.name && { name: student.name }),
+          ...(student.isActive !== undefined && { isActive: student.isActive }),
+          parentId: student.parentId !== undefined ? student.parentId : existingStudent.parentId
+        };
+
         return prisma.student.update({
           where: {
-            id: Number(student.id)
+            id: student.id
           },
-          data: {
-            ...(student.className && { className: student.className }),
-            ...(student.name && { name: student.name }),
-            ...(student.isActive !== undefined && { isActive: student.isActive }),
-            ...(student.parentId && { parentId: student.parentId }),
-            ...(!student.parentId && existingStudent.parentId && { parentId: existingStudent.parentId })
-          },
+          data: updateData,
           include: {
             parent: {
               select: {
@@ -172,6 +198,12 @@ async function updateClass(students) {
 
   } catch (error) {
     console.error('Update students service error:', error);
+    if (error.code === 'P2003') {
+      return {
+        status: false,
+        message: 'ID orang tua yang diberikan tidak valid'
+      };
+    }
     throw error;
   }
 }

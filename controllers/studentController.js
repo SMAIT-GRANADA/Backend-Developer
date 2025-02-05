@@ -50,9 +50,7 @@ async function createBulkStudents(req, res) {
         });
       }
     }
-
     const result = await studentService.createBulkStudents(students);
-
     if (!result.status) {
       return res.status(400).json(result);
     }
@@ -71,19 +69,33 @@ async function createBulkStudents(req, res) {
 async function updateClass(req, res) {
   try {
     const { students } = req.body;
-
     if (!Array.isArray(students) || students.length === 0) {
       return res.status(400).json({
         status: false,
         message: 'Data siswa tidak valid'
       });
     }
-    
     for (const student of students) {
-      if (!student.id || (!student.className && !student.name && student.isActive === undefined && !student.parentId)) {
+      // Validasi ID
+      if (!student.id || isNaN(Number(student.id))) {
         return res.status(400).json({
           status: false,
-          message: 'ID siswa dan minimal satu field untuk diupdate (kelas, nama, status, atau orang tua) harus diisi'
+          message: 'ID siswa tidak valid'
+        });
+      }
+      if (!student.className && !student.name && 
+          student.isActive === undefined && !student.parentId) {
+        return res.status(400).json({
+          status: false,
+          message: 'Minimal satu field harus diisi untuk update (kelas, nama, status, atau orang tua)'
+        });
+      }
+      if (student.parentId !== undefined && 
+          student.parentId !== null && 
+          isNaN(Number(student.parentId))) {
+        return res.status(400).json({
+          status: false,
+          message: 'ID orang tua tidak valid'
         });
       }
     }
