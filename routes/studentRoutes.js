@@ -7,6 +7,6 @@ router.use(checkAuth);
 
 router.get('/students', isTeacherOrSuperAdmin, studentController.getAllStudents);
 router.post('/students/bulk', isSuperAdmin, studentController.createBulkStudents);
-router.put('/students/class', isSuperAdmin, studentController.updateClass);
+router.put('/students/class', isSuperAdmin, studentController.updateStudents);
 
 module.exports = router;

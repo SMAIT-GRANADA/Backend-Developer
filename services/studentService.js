@@ -114,14 +114,16 @@ async function createBulkStudents(students) {
   }
 }
 
-async function updateClass(students) {
+async function updateStudents(students) {
   try {
     const validatedStudents = students.map(student => ({
       ...student,
       id: Number(student.id),
       parentId: student.parentId ? Number(student.parentId) : null
     }));
+
     const studentIds = validatedStudents.map(s => s.id);
+
     const existingStudents = await prisma.student.findMany({
       where: {
         id: { in: studentIds }
@@ -139,6 +141,26 @@ async function updateClass(students) {
         status: false,
         message: `Beberapa siswa tidak ditemukan: ID ${notFoundIds.join(', ')}`
       };
+    }
+    const newNisns = validatedStudents
+      .filter(s => s.nisn)
+      .map(s => s.nisn);
+    
+    if (newNisns.length > 0) {
+      const existingNisns = await prisma.student.findMany({
+        where: {
+          nisn: { in: newNisns },
+          id: { notIn: studentIds },
+          isActive: true
+        }
+      });
+
+      if (existingNisns.length > 0) {
+        return {
+          status: false,
+          message: `NISN ${existingNisns.map(s => s.nisn).join(', ')} sudah digunakan oleh siswa lain`
+        };
+      }
     }
     if (validatedStudents.some(s => s.parentId)) {
       const parentIds = validatedStudents
@@ -167,6 +189,7 @@ async function updateClass(students) {
         const updateData = {
           ...(student.className && { className: student.className }),
           ...(student.name && { name: student.name }),
+          ...(student.nisn && { nisn: student.nisn }),
           ...(student.isActive !== undefined && { isActive: student.isActive }),
           parentId: student.parentId !== undefined ? student.parentId : existingStudent.parentId
         };
@@ -198,6 +221,12 @@ async function updateClass(students) {
 
   } catch (error) {
     console.error('Update students service error:', error);
+    if (error.code === 'P2002') {
+      return {
+        status: false,
+        message: 'NISN sudah digunakan oleh siswa lain'
+      };
+    }
     if (error.code === 'P2003') {
       return {
         status: false,
@@ -211,5 +240,5 @@ async function updateClass(students) {
 module.exports = {
   getAllStudents,
   createBulkStudents,
-  updateClass
+  updateStudents
 };
