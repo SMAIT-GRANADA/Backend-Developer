@@ -1,8 +1,8 @@
 const ATTENDANCE_START_HOUR = 6; // Jam 6 pagi
 const ATTENDANCE_LATE_HOUR = 7;  // Jam 7 pagi
 const ATTENDANCE_LATE_MINUTE = 30; // 30 menit
-const SCHOOL_LATITUDE = -1.248461;
-const SCHOOL_LONGITUDE = 116.880179;
+const SCHOOL_LATITUDE = -0.4580245;
+const SCHOOL_LONGITUDE = 177.1260444;
 const MAX_DISTANCE = 500; // dalam meter
 
 const checkGeolocation = (req, res, next) => {
