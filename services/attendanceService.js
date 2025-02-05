@@ -92,7 +92,7 @@ const generateAttendanceMessage = async (userId, type) => {
       return `Selamat! Anda telah berhasil absen ${user.name}. Jangan pernah berhenti belajar karena selama kita hidup, ada selalu sesuatu yang baru untuk dipelajari :)`;
     }
   } else if (type === 'checkout' && isTeacher) {
-    return `Terima kasih, Ibu ${user.name}, atas kontribusi Anda hari ini. Selamat beristirahat!`;
+    return `Terima kasih, ${user.name}, atas kontribusi Anda hari ini. Selamat beristirahat!`;
   }
   
   return 'Checkout berhasil';
