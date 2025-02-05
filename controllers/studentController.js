@@ -80,10 +80,10 @@ async function updateClass(req, res) {
     }
     
     for (const student of students) {
-      if (!student.id || (!student.className && !student.name && student.isActive === undefined)) {
+      if (!student.id || (!student.className && !student.name && student.isActive === undefined && !student.parentId)) {
         return res.status(400).json({
           status: false,
-          message: 'ID siswa dan minimal satu field untuk diupdate (kelas, nama, atau status) harus diisi'
+          message: 'ID siswa dan minimal satu field untuk diupdate (kelas, nama, status, atau orang tua) harus diisi'
         });
       }
     }
