@@ -8,7 +8,6 @@ async function hashPassword(password) {
 
 async function main() {
   try {
-    // Clean up existing data
     await prisma.newsMedia.deleteMany();
     await prisma.news.deleteMany();
     await prisma.quote.deleteMany();
@@ -23,7 +22,7 @@ async function main() {
     await prisma.role.deleteMany();
     await prisma.user.deleteMany();
     await prisma.staff.deleteMany();
-    // Data Staff
+
     const staffData = [
       {
         name: "Abd.Wahab Syahrani, M.Pd.",
@@ -263,7 +262,6 @@ async function main() {
       )
     );
 
-  // Create Roles
   const roles = await Promise.all([
     prisma.role.create({
       data: {
@@ -302,11 +300,10 @@ async function main() {
     })
   ]);
 
-  // Create SuperAdmin
   const superAdminUser = await prisma.user.create({
     data: {
       username: 'superadmin',
-      password: await hashPassword('superadmin123'),
+      password: await hashPassword(process.env.SUPERADMIN_PASSWORD || 'superadmin123'),
       name: 'Super Admin',
       email: 'superadmin@granada.sch.id',
       roles: {
@@ -316,166 +313,14 @@ async function main() {
       }
     }
   });
-
-  const superAdmin = await prisma.superAdmin.create({
+  
+  await prisma.superAdmin.create({
     data: {
       userId: superAdminUser.id
     }
   });
 
-  // Create Admin
-  const adminUser = await prisma.user.create({
-    data: {
-      username: 'admin',
-      password: await hashPassword('admin123'),
-      name: 'Admin User',
-      email: 'admin@granada.sch.id',
-      roles: {
-        create: {
-          roleId: 2
-        }
-      }
-    }
-  });
-
-  // Create Teacher (untuk memberi point)
-  const teacher = await prisma.user.create({
-    data: {
-      username: 'guru1',
-      password: await hashPassword('guru123'),
-      name: 'Ahmad Teacher',
-      email: 'ahmad@granada.sch.id',
-      roles: {
-        create: {
-          roleId: 3 // role guru
-        }
-      }
-    }
-  });
-
-  // Create Parent Users
-  const parentBudi = await prisma.user.create({
-    data: {
-      username: 'ortubudi',
-      password: await hashPassword('ortu123'),
-      name: 'Budi (Orang Tua)',
-      email: 'budi.parent@granada.sch.id',
-      roles: {
-        create: {
-          roleId: 4 // role ortu
-        }
-      }
-    }
-  });
-
-  // Create Student Account
-  const studentUser = await prisma.user.create({
-    data: {
-      username: 'ahmad123',
-      password: await hashPassword('student123'),
-      name: 'Ahmad Student',
-      email: 'ahmad.student@granada.sch.id',
-      roles: {
-        create: {
-          roleId: 5 // role siswa
-        }
-      }
-    }
-  });
-
-  // Create Students (tanpa user account)
-  const studentAhmad = await prisma.student.create({
-    data: {
-      name: "Ahmad",
-      className: "X IPA 1",
-      parentId: parentBudi.id,
-      isActive: true
-    }
-  });
-
-  const studentFatimah = await prisma.student.create({
-    data: {
-      name: "Fatimah",
-      className: "X IPA 1",
-      parentId: parentBudi.id,
-      isActive: true
-    }
-  });
-
-  // Create Sample Points
-  await Promise.all([
-    prisma.studentPoint.create({
-      data: {
-        studentId: studentAhmad.id,
-        points: 10,
-        description: 'Terlambat',
-        teacherId: teacher.id
-      }
-    }),
-    prisma.studentPoint.create({
-      data: {
-        studentId: studentFatimah.id,
-        points: 15,
-        description: 'Berbohong',
-        teacherId: teacher.id
-      }
-    })
-  ]);
-
-  // Create Sample News
-  const news = await prisma.news.create({
-    data: {
-      title: 'Pengumuman Tahun Ajaran Baru',
-      description: 'Selamat datang di tahun ajaran baru 2024/2025',
-      superAdminId: superAdmin.id,
-      isPublished: true,
-      publishedAt: new Date(),
-      media: {
-        create: {
-          mediaType: 'image',
-          mediaUrl: '/uploads/news/welcome-2024.jpg'
-        }
-      }
-    }
-  });
-
-  // Create Sample Quotes
-  await prisma.quote.create({
-    data: {
-      content: 'Pendidikan adalah kunci masa depan yang lebih baik',
-      superAdminId: superAdmin.id,
-      isActive: true
-    }
-  });
-
-  // Create Sample Attendance Record
-  const today = new Date();
-  await prisma.attendance.create({
-    data: {
-      userId: teacher.id,
-      checkInTime: new Date(today.setHours(7, 30, 0)),
-      checkInPhotoUrl: '/uploads/attendance/checkin.jpg',
-      checkInLatitude: -0.457833,
-      checkInLongitude: 117.1259754,
-      checkOutTime: new Date(today.setHours(16, 0, 0)),
-      checkOutPhotoUrl: '/uploads/attendance/checkout.jpg',
-      checkOutLatitude: -0.457833,
-      checkOutLongitude: 117.1259754,
-      status: 'hadir'
-    }
-  });
-
-  // Create Sample Salary Slip
-  await prisma.salarySlip.create({
-    data: {
-      teacherId: teacher.id,
-      slipImageUrl: '/uploads/salary/slip-januari-2024.pdf',
-      period: new Date(),
-      uploadedBy: adminUser.id
-    }
-  });
-
-  console.log('Seed data created successfully');
+  console.log('Production seed data created successfully');
 } catch (error) {
   console.error('Error seeding data:', error);
   process.exit(1);
