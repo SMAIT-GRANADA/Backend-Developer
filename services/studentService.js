@@ -119,6 +119,9 @@ async function updateClass(students) {
     const existingStudents = await prisma.student.findMany({
       where: {
         id: { in: studentIds }
+      },
+      include: {
+        parent: true
       }
     });
 
@@ -133,26 +136,32 @@ async function updateClass(students) {
     }
 
     const result = await prisma.$transaction(
-      students.map(student =>
-        prisma.student.update({
+      students.map(student => {
+        const existingStudent = existingStudents.find(es => es.id === Number(student.id));
+        
+        return prisma.student.update({
           where: {
             id: Number(student.id)
           },
           data: {
             ...(student.className && { className: student.className }),
             ...(student.name && { name: student.name }),
-            ...(student.isActive !== undefined && { isActive: student.isActive })
+            ...(student.isActive !== undefined && { isActive: student.isActive }),
+            ...(student.parentId && { parentId: student.parentId }),
+            ...(!student.parentId && existingStudent.parentId && { parentId: existingStudent.parentId })
           },
           include: {
             parent: {
               select: {
+                id: true,
                 name: true,
-                email: true
+                email: true,
+                username: true
               }
             }
           }
-        })
-      )
+        });
+      })
     );
 
     return {
