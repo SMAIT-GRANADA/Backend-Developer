@@ -4,7 +4,6 @@ const prisma = new PrismaClient();
 async function getAllStudents(page, limit, search, className, hasParent) {
   try {
     const whereClause = {
-      isActive: true,
       ...(search && {
         OR: [
           { nisn: { contains: search, mode: 'insensitive' } },
