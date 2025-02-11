@@ -1,1 +1,1 @@
-# Backend SMAIT GRANADA
+# SMAIT GRANADA
