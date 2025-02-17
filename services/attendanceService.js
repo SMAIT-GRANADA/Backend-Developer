@@ -2,7 +2,7 @@ const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 const { uploadPhotoToGCS, deletePhotoFromGCS } = require('../config/gcs');
 const { Parser } = require('json2csv');
-const XLSX = require('xlsx');
+const ExcelJS = require('exceljs');
 
 const ATTENDANCE_START_HOUR = 6;
 const ATTENDANCE_LATE_HOUR = 7;
@@ -427,26 +427,30 @@ const exportAttendance = async (startDate, endDate, format = 'csv') => {
       const parser = new Parser({ fields: csvFields });
       return parser.parse(exportData);
     } else {
-      const workbook = XLSX.utils.book_new();
-      const worksheet = XLSX.utils.json_to_sheet(exportData);
+      const workbook = new ExcelJS.Workbook();
+      const worksheet = workbook.addWorksheet('Attendance Report');
 
-      const colWidths = [
-        { wch: 5 },
-        { wch: 12 },
-        { wch: 25 },
-        { wch: 30 },
-        { wch: 15 },
-        { wch: 10 },
-        { wch: 12 },
-        { wch: 25 },
-        { wch: 12 },
-        { wch: 25 },
+      worksheet.columns = [
+        { header: 'ID', key: 'ID', width: 5 },
+        { header: 'Tanggal', key: 'Tanggal', width: 12 },
+        { header: 'Nama', key: 'Nama', width: 25 },
+        { header: 'Email', key: 'Email', width: 30 },
+        { header: 'Role', key: 'Role', width: 15 },
+        { header: 'Status', key: 'Status', width: 10 },
+        { header: 'Jam Masuk', key: 'Jam Masuk', width: 12 },
+        { header: 'Lokasi Masuk', key: 'Lokasi Masuk', width: 25 },
+        { header: 'Jam Keluar', key: 'Jam Keluar', width: 12 },
+        { header: 'Lokasi Keluar', key: 'Lokasi Keluar', width: 25 }
       ];
-      worksheet['!cols'] = colWidths;
-
-      XLSX.utils.book_append_sheet(workbook, worksheet, 'Attendance Report');
-      
-      return XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx', bookSST: false });
+      worksheet.getRow(1).font = { bold: true };
+      worksheet.getRow(1).alignment = { vertical: 'middle', horizontal: 'center' };
+      worksheet.addRows(exportData);
+      worksheet.eachRow((row, rowNumber) => {
+        row.eachCell((cell) => {
+          cell.alignment = { vertical: 'middle', horizontal: 'left' };
+        });
+      });
+      return await workbook.xlsx.writeBuffer();
     }
   } catch (error) {
     console.error('Error in exportAttendance:', error);
