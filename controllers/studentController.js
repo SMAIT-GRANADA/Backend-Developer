@@ -66,7 +66,7 @@ async function createBulkStudents(req, res) {
   }
 }
 
-async function updateClass(req, res) {
+async function updateStudents(req, res) {
   try {
     const { students } = req.body;
     if (!Array.isArray(students) || students.length === 0) {
@@ -75,8 +75,8 @@ async function updateClass(req, res) {
         message: 'Data siswa tidak valid'
       });
     }
+
     for (const student of students) {
-      // Validasi ID
       if (!student.id || isNaN(Number(student.id))) {
         return res.status(400).json({
           status: false,
@@ -84,10 +84,17 @@ async function updateClass(req, res) {
         });
       }
       if (!student.className && !student.name && 
-          student.isActive === undefined && !student.parentId) {
+          student.isActive === undefined && !student.parentId &&
+          !student.nisn) {
         return res.status(400).json({
           status: false,
-          message: 'Minimal satu field harus diisi untuk update (kelas, nama, status, atau orang tua)'
+          message: 'Minimal satu field harus diisi untuk update (kelas, nama, status, NISN, atau orang tua)'
+        });
+      }
+      if (student.nisn && !/^\d{10}$/.test(student.nisn)) {
+        return res.status(400).json({
+          status: false,
+          message: `NISN ${student.nisn} tidak valid. NISN harus 10 digit angka`
         });
       }
       if (student.parentId !== undefined && 
@@ -100,7 +107,7 @@ async function updateClass(req, res) {
       }
     }
 
-    const result = await studentService.updateClass(students);
+    const result = await studentService.updateStudents(students);
 
     if (!result.status) {
       return res.status(400).json(result);
@@ -120,5 +127,5 @@ async function updateClass(req, res) {
 module.exports = {
   getAllStudents,
   createBulkStudents,
-  updateClass
+  updateStudents
 };
