@@ -1,0 +1,56 @@
+name: Deploy to Cloud Run
+
+on:
+  push:
+    branches:
+      - main
+
+env:
+  PROJECT_ID: your-project-id
+  SERVICE_NAME: granada-api
+  REGION: asia-southeast2
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3
+
+    - name: Set up Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '18'
+
+    - name: Setup Google Cloud CLI
+      uses: google-github-actions/setup-gcloud@v1
+      with:
+        project_id: ${{ env.PROJECT_ID }}
+        service_account_key: ${{ secrets.GCP_SA_KEY }}
+        export_default_credentials: true
+
+    - name: Configure Docker for GCP
+      run: gcloud auth configure-docker
+
+    - name: Build and Push Docker Image
+      run: |
+        docker build -t gcr.io/${{ env.PROJECT_ID }}/${{ env.SERVICE_NAME }}:${{ github.sha }} .
+        docker push gcr.io/${{ env.PROJECT_ID }}/${{ env.SERVICE_NAME }}:${{ github.sha }}
+
+    - name: Deploy to Cloud Run
+      run: |
+        gcloud run deploy ${{ env.SERVICE_NAME }} \
+          --image gcr.io/${{ env.PROJECT_ID }}/${{ env.SERVICE_NAME }}:${{ github.sha }} \
+          --region ${{ env.REGION }} \
+          --platform managed \
+          --allow-unauthenticated \
+          --set-env-vars "DATABASE_URL=${{ secrets.DATABASE_URL }}" \
+          --set-env-vars "JWT_ACCESS_SECRET=${{ secrets.JWT_ACCESS_SECRET }}" \
+          --set-env-vars "JWT_REFRESH_SECRET=${{ secrets.JWT_REFRESH_SECRET }}" \
+          --set-env-vars "SESSION_SECRET=${{ secrets.SESSION_SECRET }}" \
+          --set-env-vars "IMAGEKIT_PUBLIC_KEY=${{ secrets.IMAGEKIT_PUBLIC_KEY }}" \
+          --set-env-vars "IMAGEKIT_PRIVATE_KEY=${{ secrets.IMAGEKIT_PRIVATE_KEY }}" \
+          --set-env-vars "IMAGEKIT_URL_ENDPOINT=${{ secrets.IMAGEKIT_URL_ENDPOINT }}" \
+          --set-env-vars "EMAIL_USER=${{ secrets.EMAIL_USER }}" \
+          --set-env-vars "EMAIL_PASS=${{ secrets.EMAIL_PASS }}"
