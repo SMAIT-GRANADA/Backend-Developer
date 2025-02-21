@@ -1,0 +1,240 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Users & Authentication
+model User {
+  id        Int       @id @default(autoincrement())
+  username  String    @unique
+  password  String
+  name      String
+  email     String    @unique
+  isActive  Boolean   @default(true)
+  tokens        Token[]
+  passwordResets PasswordReset[]
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime? @updatedAt @map("updated_at")
+
+  // Relations
+  roles         UserRole[]
+  superAdmin    SuperAdmin?
+  attendance    Attendance[]
+  pointsGiven   StudentPoint[] @relation("TeacherPoints")
+  students      Student[]    @relation("ParentStudents")
+  salarySlips   SalarySlip[]    @relation("TeacherSlips")
+  uploadsSlips  SalarySlip[]    @relation("AdminUploads")
+  academicsGiven AcademicRecord[] @relation("TeacherAcademics")
+  @@map("users")
+}
+model PasswordReset {
+  id          Int       @id @default(autoincrement())
+  userId      Int       @map("user_id")
+  otp         String
+  resetToken  String?   @unique
+  isVerified  Boolean   @default(false)
+  isUsed      Boolean   @default(false)
+  expiresAt   DateTime  @map("expires_at")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime? @updatedAt @map("updated_at")
+  user        User      @relation(fields: [userId], references: [id])
+
+  @@map("password_resets")
+}
+model Token {
+  id           Int       @id @default(autoincrement())
+  userId       Int       @map("user_id")
+  refreshToken String    @unique @map("refresh_token")
+  isValid      Boolean   @default(true)
+  expiresAt    DateTime  @map("expires_at")
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime? @updatedAt @map("updated_at")
+  user         User      @relation(fields: [userId], references: [id])
+
+  @@map("tokens")
+}
+
+model Role {
+  id          Int        @id
+  name        String     @unique
+  description String?
+  users       UserRole[]
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+}
+
+model UserRole {
+  id        Int       @id @default(autoincrement())
+  userId    Int       @map("user_id")
+  roleId    Int       @map("role_id")
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime? @updatedAt @map("updated_at")
+  user      User      @relation(fields: [userId], references: [id])
+  role      Role      @relation(fields: [roleId], references: [id])
+
+  @@map("user_roles")
+}
+
+// Admin & Content Management
+model SuperAdmin {
+  id        Int       @id @default(autoincrement())
+  userId    Int       @unique @map("user_id")
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime? @updatedAt @map("updated_at")
+  user      User      @relation(fields: [userId], references: [id])
+  news      News[]
+  quotes    Quote[]
+
+  @@map("superadmin")
+}
+model Staff {
+  id          Int       @id @default(autoincrement())
+  name        String
+  position    String    
+  imageUrl    String    @map("image_url")
+  order       Int       @default(0)
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime? @updatedAt @map("updated_at")
+
+  @@map("staff")
+}
+
+model News {
+  id           Int        @id @default(autoincrement())
+  title        String
+  description  String?
+  superAdminId Int        @map("superadmin_id")
+  publishedAt  DateTime?  @map("published_at")
+  isPublished  Boolean    @default(false) @map("is_published")
+  createdAt    DateTime   @default(now()) @map("created_at")
+  updatedAt    DateTime?  @updatedAt @map("updated_at")
+  superAdmin   SuperAdmin @relation(fields: [superAdminId], references: [id])
+  media        NewsMedia[]
+
+  @@map("news")
+}
+
+model NewsMedia {
+  id        Int       @id @default(autoincrement())
+  newsId    Int       @map("news_id")
+  mediaType String    @map("media_type")
+  mediaUrl  String    @map("media_url")
+  fileId    String?   @map("file_id")
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime? @updatedAt @map("updated_at")
+  news      News      @relation(fields: [newsId], references: [id])
+
+  @@map("news_media")
+}
+
+model Quote {
+  id           Int        @id @default(autoincrement())
+  content      String
+  superAdminId Int        @map("superadmin_id")
+  isActive     Boolean    @default(true) @map("is_active")
+  createdAt    DateTime   @default(now()) @map("created_at")
+  updatedAt    DateTime?  @updatedAt @map("updated_at")
+  superAdmin   SuperAdmin @relation(fields: [superAdminId], references: [id])
+
+  @@map("quotes")
+}
+
+// Attendance System
+model Attendance {
+  id                Int       @id @default(autoincrement())
+  userId            Int
+  checkInTime       DateTime
+  checkInPhotoUrl   String
+  checkInLatitude   Float
+  checkInLongitude  Float
+  checkOutTime      DateTime?
+  checkOutPhotoUrl  String?
+  checkOutLatitude  Float?
+  checkOutLongitude Float?
+  status            String    
+  notes             String?
+  user              User      @relation(fields: [userId], references: [id])
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime? @updatedAt
+
+  @@map("attendance")
+}
+
+// Student Management
+model Student {
+  id          Int       @id @default(autoincrement())
+  name        String
+  nisn        String    @unique
+  className   String    @map("class_name")
+  parentId    Int?      @map("parent_id")
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime? @updatedAt @map("updated_at")
+
+  // Relations
+  parent      User?     @relation("ParentStudents", fields: [parentId], references: [id])
+  points      StudentPoint[]
+  academics   AcademicRecord[]
+
+  @@index([nisn])
+  @@index([className])
+  @@index([parentId])
+  @@index([isActive])
+
+  @@map("students")
+}
+
+model StudentPoint {
+  id          Int       @id @default(autoincrement())
+  studentId   Int       @map("student_id")
+  points      Int
+  description String?
+  teacherId   Int       @map("teacher_id")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime? @updatedAt @map("updated_at")
+  
+  student     Student   @relation(fields: [studentId], references: [id])
+  teacher     User      @relation("TeacherPoints", fields: [teacherId], references: [id])
+
+  @@map("student_points")
+}
+
+model AcademicRecord {
+  id           Int       @id @default(autoincrement())
+  studentId    Int       @map("student_id")
+  teacherId    Int       @map("teacher_id") 
+  semester     String
+  academicYear String    @map("academic_year")
+  grades       Json
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime? @updatedAt @map("updated_at")
+  student      Student   @relation(fields: [studentId], references: [id])
+  teacher      User      @relation("TeacherAcademics", fields: [teacherId], references: [id])
+  @@map("academic_records")
+}
+
+// Teacher Managementa
+model SalarySlip {
+  id            Int       @id @default(autoincrement())
+  teacherId     Int       @map("teacher_id")
+  slipImageUrl  String    @map("slip_image_url")
+  period        DateTime
+  uploadedBy    Int       @map("uploaded_by")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime? @updatedAt @map("updated_at")
+  teacher       User      @relation("TeacherSlips", fields: [teacherId], references: [id])
+  admin         User      @relation("AdminUploads", fields: [uploadedBy], references: [id])
+
+  @@map("salary_slips")
+}
