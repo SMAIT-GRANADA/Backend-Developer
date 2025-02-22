@@ -9,9 +9,13 @@ env:
   IMAGE_NAME: granada-api
   REGISTRY_LOCATION: asia-southeast2-docker.pkg.dev
   REPOSITORY: granada-repository
-
+  
 jobs:
   build-and-push:
+    permissions:
+      contents: 'read'
+      id-token: 'write'
+      
     runs-on: ubuntu-latest
     
     steps:
@@ -32,8 +36,10 @@ jobs:
 
     - name: Build Docker image
       run: |
-        docker build -t $REGISTRY_LOCATION/$PROJECT_ID/$IMAGE_NAME:${{ github.sha }} .
+        docker build -t $REGISTRY_LOCATION/$PROJECT_ID/$REPOSITORY/$IMAGE_NAME:${{ github.sha }} .
+        docker tag $REGISTRY_LOCATION/$PROJECT_ID/$REPOSITORY/$IMAGE_NAME:${{ github.sha }} $REGISTRY_LOCATION/$PROJECT_ID/$REPOSITORY/$IMAGE_NAME:latest
 
     - name: Push Docker image
       run: |
-        docker push $REGISTRY_LOCATION/$PROJECT_ID/$IMAGE_NAME:${{ github.sha }}
+        docker push $REGISTRY_LOCATION/$PROJECT_ID/$REPOSITORY/$IMAGE_NAME:${{ github.sha }}
+        docker push $REGISTRY_LOCATION/$PROJECT_ID/$REPOSITORY/$IMAGE_NAME:latest
