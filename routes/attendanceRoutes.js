@@ -73,4 +73,8 @@ router.put('/attendance/:id',
   attendanceController.updateAttendanceRecord
 );
 
+router.get('/attendance/all',
+  isSuperAdmin,
+  attendanceController.getAllAttendance
+);
 module.exports = router;

@@ -493,7 +493,33 @@ const deleteAttendance = async (id) => {
     throw new Error(error.message || 'Gagal menghapus attendance');
   }
 };
+const getAllAttendance = async () => {
+  try {
+    const attendances = await prisma.attendance.findMany({
+      include: {
+        user: {
+          select: {
+            name: true,
+            email: true,
+            roles: {
+              include: {
+                role: true
+              }
+            }
+          }
+        }
+      },
+      orderBy: {
+        checkInTime: 'desc'
+      }
+    });
 
+    return attendances;
+  } catch (error) {
+    console.error('Error in getAllAttendance:', error);
+    throw new Error('Gagal mengambil semua data attendance');
+  }
+};
 module.exports = {
   createAttendance,
   updateAttendance,
@@ -506,5 +532,6 @@ module.exports = {
   deleteAttendance,
   validatePhotoBase64,
   isWithinAttendanceHours,
-  isLate
+  isLate,
+  getAllAttendance
 };
