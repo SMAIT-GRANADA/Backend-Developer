@@ -1,6 +1,8 @@
 const express = require("express");
 const dotenv = require("dotenv");
+
 dotenv.config();
+const PORT = process.env.PORT || 8080;
 
 const session = require("express-session");
 const pgSession = require("connect-pg-simple")(session);
@@ -20,6 +22,10 @@ const app = express();
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
+});
+
+app.get('/_health', (req, res) => {
+  res.status(200).send('OK');
 });
 
 // Middleware
@@ -84,10 +90,24 @@ app.use((err, req, res, next) => {
   });
 });
 
-const PORT = process.env.PORT || 8080;
+pool.connect()
+  .then(() => console.log('Database connected successfully'))
+  .catch(err => {
+    console.error('Database connection error:', err);
+  });
 
-app.listen(PORT, () => {
-  console.log(`Server running on http://localhost:${PORT}`);
+const server = app.listen(PORT, '0.0.0.0', () => {
+  console.log(`Server running on port ${PORT}`);
+}).on('error', (err) => {
+  console.error('Failed to start server:', err);
+});
+
+process.on('SIGTERM', () => {
+  console.log('SIGTERM signal received: closing HTTP server');
+  server.close(() => {
+    console.log('HTTP server closed');
+    pool.end();
+  });
 });
 
 module.exports = app;
