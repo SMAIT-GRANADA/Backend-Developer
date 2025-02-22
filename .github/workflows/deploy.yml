@@ -43,3 +43,10 @@ jobs:
       run: |
         docker push $REGISTRY_LOCATION/$PROJECT_ID/$REPOSITORY/$IMAGE_NAME:${{ github.sha }}
         docker push $REGISTRY_LOCATION/$PROJECT_ID/$REPOSITORY/$IMAGE_NAME:latest
+    - name: Deploy to Cloud Run
+      run: |
+        gcloud run deploy granada-api \
+        --image=$REGISTRY_LOCATION/$PROJECT_ID/$REPOSITORY/$IMAGE_NAME:latest \
+        --region=asia-southeast2 \
+        --platform=managed \
+        --allow-unauthenticated
