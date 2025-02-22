@@ -316,6 +316,23 @@ const updateAttendanceRecord = async (req, res) => {
   }
 };
 
+const getAllAttendance = async (req, res) => {
+  try {
+    const attendances = await attendanceService.getAllAttendance();
+    
+    return res.status(200).json({
+      status: true,
+      message: 'Data attendance berhasil diambil',
+      data: attendances
+    });
+  } catch (error) {
+    console.error('Error in getAllAttendance:', error);
+    return res.status(500).json({
+      status: false, 
+      message: error.message || 'Terjadi kesalahan saat mengambil data attendance'
+    });
+  }
+};
 module.exports = {
   checkIn,
   checkOut,
@@ -326,5 +343,6 @@ module.exports = {
   getStatistics,
   exportAttendance,
   deleteAttendance,
-  updateAttendanceRecord
+  updateAttendanceRecord,
+  getAllAttendance
 };
