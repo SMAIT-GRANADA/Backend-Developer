@@ -137,17 +137,23 @@ const startServer = async () => {
   try {
     await pool.query('SELECT 1');
     console.log('Database connection verified');
+    console.log('Attempting to start server on port:', PORT);
 
     const server = app.listen(PORT, '0.0.0.0', () => {
-      console.log(`Server is running on port ${PORT}`);
+      console.log(`Server is running at http://0.0.0.0:${PORT}`);
       console.log('Environment:', process.env.NODE_ENV);
+      console.log('Database URL:', process.env.DATABASE_URL ? 'Set' : 'Not Set');
     });
 
     server.on('error', (error) => {
-      console.error('Server error occurred:', error);
+      if (error.code === 'EADDRINUSE') {
+        console.error(`Port ${PORT} is already in use`);
+      } else {
+        console.error('Server error occurred:', error);
+      }
       process.exit(1);
     });
-
+    
     process.on('SIGTERM', () => {
       console.log('SIGTERM received. Shutting down gracefully...');
       server.close(() => {
@@ -165,6 +171,9 @@ const startServer = async () => {
   }
 };
 
-startServer();
+startServer().catch(err => {
+  console.error('Startup error:', err);
+  process.exit(1);
+});
 
 module.exports = app;
