@@ -115,42 +115,25 @@ app.use((err, req, res, next) => {
   });
 });
 
-const startServer = async () => {
+const startServer = () => {
   try {
-    console.log('Environment variables check:');
-    const requiredVars = [
-      'DATABASE_URL',
-      'NODE_ENV',
-      'JWT_ACCESS_SECRET',
-      'JWT_REFRESH_SECRET',
-      'SESSION_SECRET',
-      'GOOGLE_CLOUD_PROJECT_ID',
-      'GOOGLE_CLOUD_BUCKET_NAME'
-    ];
-    
-    requiredVars.forEach(varName => {
-      if (!process.env[varName]) {
-        throw new Error(`Missing required environment variable: ${varName}`);
-      }
-      console.log(`${varName} is set`);
+    console.log('Starting server with configuration:');
+    console.log('PORT:', PORT);
+    console.log('NODE_ENV:', process.env.NODE_ENV);
+    console.log('DATABASE_URL:', process.env.DATABASE_URL ? 'Set' : 'Not Set');
+
+    const server = app.listen(PORT, '0.0.0.0', () => {
+      console.log(`Server is running on port ${PORT}`);
     });
 
-    console.log('Testing database connection...');
-    await pool.connect();
-    console.log('Database connected successfully');
-    
-    const server = app.listen(PORT, '0.0.0.0', () => {
-      console.log(`Server running on port ${PORT}`);
-      console.log(`Environment: ${process.env.NODE_ENV}`);
-    });
-    
-    server.on('error', (err) => {
-      console.error('Server error:', err);
+    // Handle server errors
+    server.on('error', (error) => {
+      console.error('Server error occurred:', error);
       process.exit(1);
     });
 
-  } catch (err) {
-    console.error('Startup error:', err);
+  } catch (error) {
+    console.error('Failed to start server:', error);
     process.exit(1);
   }
 };
