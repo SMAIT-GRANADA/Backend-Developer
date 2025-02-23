@@ -117,31 +117,40 @@ app.use((err, req, res, next) => {
 
 const startServer = async () => {
   try {
-    await pool.connect();
-    console.log('Database terhubung dengan sukses');
-
-    const server = app.listen(PORT, '0.0.0.0', () => {
-      console.log(`Server berjalan di port ${PORT}`);
-      console.log(`Mode: ${process.env.NODE_ENV}`);
-      console.log(`Waktu: ${new Date().toISOString()}`);
+    console.log('Environment variables check:');
+    const requiredVars = [
+      'DATABASE_URL',
+      'NODE_ENV',
+      'JWT_ACCESS_SECRET',
+      'JWT_REFRESH_SECRET',
+      'SESSION_SECRET',
+      'GOOGLE_CLOUD_PROJECT_ID',
+      'GOOGLE_CLOUD_BUCKET_NAME'
+    ];
+    
+    requiredVars.forEach(varName => {
+      if (!process.env[varName]) {
+        throw new Error(`Missing required environment variable: ${varName}`);
+      }
+      console.log(`${varName} is set`);
     });
 
+    console.log('Testing database connection...');
+    await pool.connect();
+    console.log('Database connected successfully');
+    
+    const server = app.listen(PORT, '0.0.0.0', () => {
+      console.log(`Server running on port ${PORT}`);
+      console.log(`Environment: ${process.env.NODE_ENV}`);
+    });
+    
     server.on('error', (err) => {
       console.error('Server error:', err);
       process.exit(1);
     });
 
-    process.on('SIGTERM', () => {
-      console.log('SIGTERM diterima: menutup HTTP server');
-      server.close(async () => {
-        console.log('HTTP server ditutup');
-        await pool.end();
-        process.exit(0);
-      });
-    });
-
   } catch (err) {
-    console.error('Error saat startup:', err);
+    console.error('Startup error:', err);
     process.exit(1);
   }
 };
