@@ -12,29 +12,26 @@ COPY package*.json ./
 RUN npm ci --only=production
 
 COPY . .
+
 RUN npx prisma generate
 
-COPY <<EOF /app/startup.sh
-
-required_vars=(
-  "DATABASE_URL"
-  "NODE_ENV"
-  "JWT_ACCESS_SECRET"
-  "JWT_REFRESH_SECRET"
-  "SESSION_SECRET"
-  "GOOGLE_CLOUD_PROJECT_ID"
-  "GOOGLE_CLOUD_BUCKET_NAME"
-)
-
-for var in "\${required_vars[@]}"; do
-  if [ -z "\${!var}" ]; then
-    echo "Error: \$var is not set"
-    exit 1
-  fi
-done
-sleep 5
-exec node app.js
-EOF
+RUN echo '#!/bin/sh\n\
+# Check required environment variables\n\
+if [ -z "$DATABASE_URL" ]; then\n\
+    echo "Error: DATABASE_URL is not set"\n\
+    exit 1\n\
+fi\n\
+if [ -z "$NODE_ENV" ]; then\n\
+    echo "Error: NODE_ENV is not set"\n\
+    exit 1\n\
+fi\n\
+\n\
+# Add delay untuk memastikan services lain siap\n\
+sleep 5\n\
+\n\
+# Start application\n\
+exec node app.js\n\
+' > /app/startup.sh
 
 RUN chmod +x /app/startup.sh
 
@@ -46,4 +43,4 @@ EXPOSE 8080
 HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \
   CMD curl -f http://localhost:8080/_health || exit 1
 
-CMD ["/app/startup.sh"]
+CMD ["/bin/sh", "/app/startup.sh"]
