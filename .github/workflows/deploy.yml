@@ -1,45 +1,63 @@
-name: Deploy to Cloud Run
+
+name: Build and Push to GCR
 
 on:
   push:
     branches: [ main ]
-
+  
+env:
+  PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+  IMAGE_NAME: granada-api
+  REGISTRY_LOCATION: asia-southeast2-docker.pkg.dev
+  REPOSITORY: granada-repository
+  
 jobs:
-  deploy:
+  build-and-push:
+    permissions:
+      contents: 'read'
+      id-token: 'write'
+      
     runs-on: ubuntu-latest
+    
     steps:
     - uses: actions/checkout@v4
-
+    
+    - name: Authenticate to Google Cloud
+      uses: google-github-actions/auth@v1
+      with:
+        credentials_json: ${{ secrets.GCP_SA_KEY }}
+    
     - name: Set up Cloud SDK
       uses: google-github-actions/setup-gcloud@v1
-      with:
-        project_id: ${{ secrets.GCP_PROJECT_ID }}
-        service_account_key: ${{ secrets.GCP_SA_KEY }}
-        export_default_credentials: true
-
-    - name: Authorize Docker push
-      run: gcloud auth configure-docker asia-southeast2-docker.pkg.dev
-
-    - name: Build and Push Container
+    
+    - name: Configure Docker for Artifact Registry
       run: |
-        docker build -t asia-southeast2-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/granada-repository/granada-api:${{ github.sha }} .
-        docker push asia-southeast2-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/granada-repository/granada-api:${{ github.sha }}
-
+        gcloud auth configure-docker $REGISTRY_LOCATION
+    
+    - name: Build Docker image
+      run: |
+        docker build \
+          --build-arg NODE_ENV=production \
+          -t $REGISTRY_LOCATION/$PROJECT_ID/$REPOSITORY/$IMAGE_NAME:${{ github.sha }} .
+    
+    - name: Push Docker image
+      run: |
+        docker push $REGISTRY_LOCATION/$PROJECT_ID/$REPOSITORY/$IMAGE_NAME:${{ github.sha }}
+    
     - name: Deploy to Cloud Run
       run: |
         gcloud run deploy granada-api \
-          --image=asia-southeast2-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/granada-repository/granada-api:${{ github.sha }} \
+          --image=$REGISTRY_LOCATION/$PROJECT_ID/$REPOSITORY/$IMAGE_NAME:${{ github.sha }} \
           --region=asia-southeast2 \
           --platform=managed \
-          --port=8080 \
+          --allow-unauthenticated \
+          --execution-environment=gen2 \
+          --timeout=600s \
           --memory=1Gi \
           --cpu=1 \
           --min-instances=1 \
           --max-instances=8 \
-          --allow-unauthenticated \
-          --set-env-vars=NODE_ENV=production \
-          --set-env-vars=DATABASE_URL=${{ secrets.DATABASE_URL }} \
-          --set-env-vars=JWT_ACCESS_SECRET=${{ secrets.JWT_ACCESS_SECRET }} \
-          --set-env-vars=JWT_REFRESH_SECRET=${{ secrets.JWT_REFRESH_SECRET }} \
-          --set-env-vars=SESSION_SECRET=${{ secrets.SESSION_SECRET }} \
-          --add-cloudsql-instances=${{ secrets.INSTANCE_CONNECTION_NAME }}
+          --port=8080 \
+          --set-env-vars="NODE_ENV=production,DATABASE_URL=${{ secrets.DATABASE_URL }},JWT_ACCESS_SECRET=${{ secrets.JWT_ACCESS_SECRET }},JWT_REFRESH_SECRET=${{ secrets.JWT_REFRESH_SECRET }},SESSION_SECRET=${{ secrets.SESSION_SECRET }},EMAIL_USER=${{ secrets.EMAIL_USER }},EMAIL_PASS=${{ secrets.EMAIL_PASS }},IMAGEKIT_PUBLIC_KEY=${{ secrets.IMAGEKIT_PUBLIC_KEY }},IMAGEKIT_PRIVATE_KEY=${{ secrets.IMAGEKIT_PRIVATE_KEY }},IMAGEKIT_URL_ENDPOINT=${{ secrets.IMAGEKIT_URL_ENDPOINT }},GOOGLE_CLOUD_PROJECT_ID=${{ secrets.GOOGLE_CLOUD_PROJECT_ID }},GOOGLE_CLOUD_BUCKET_NAME=${{ secrets.GOOGLE_CLOUD_BUCKET_NAME }},GCS_BUCKET_NAME=${{ secrets.GCS_BUCKET_NAME }}" \
+          --add-cloudsql-instances=${{ secrets.INSTANCE_CONNECTION_NAME }} \
+          --service-account=${{ secrets.CLOUD_RUN_SERVICE_ACCOUNT }}
