@@ -1,14 +1,13 @@
 const express = require("express");
 const dotenv = require("dotenv");
-
 dotenv.config();
-const PORT = process.env.PORT || 8080;
 
 const session = require("express-session");
 const pgSession = require("connect-pg-simple")(session);
 const { Pool } = require("pg");
 const cors = require("cors");
 const authConfig = require("./config/auth");
+
 const userRouter = require("./routes/userRoutes");
 const academicRouter = require("./routes/academicRoutes");
 const attendanceRouter = require("./routes/attendanceRoutes");
@@ -18,14 +17,39 @@ const quoteRoutes = require("./routes/quoteRoutes");
 const pointRouter = require("./routes/pointRoutes");
 const salarySlipRoutes = require("./routes/salarySlipRoutes")
 const studentRoutes = require('./routes/studentRoutes');
+
 const app = express();
+const PORT = process.env.PORT || 8080;
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
+  connectionTimeoutMillis: 5000,
+  max: 20,
+  idleTimeoutMillis: 30000,
+  retryDelay: 3000
 });
 
-app.get('/_health', (req, res) => {
-  res.status(200).send('OK');
+pool.on('error', (err) => {
+  console.error('Unexpected error on idle client', err);
+  process.exit(-1);
+});
+
+app.get('/_health', async (req, res) => {
+  try {
+    await pool.query('SELECT 1');
+    res.status(200).json({
+      status: 'healthy',
+      database: 'connected',
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('Health check failed:', error);
+    res.status(500).json({
+      status: 'unhealthy',
+      error: error.message,
+      timestamp: new Date().toISOString()
+    });
+  }
 });
 
 // Middleware
@@ -83,31 +107,45 @@ app.use((req, res) => {
 
 // Global error handler
 app.use((err, req, res, next) => {
-  console.error(err.stack);
+  console.error('Error:', err);
   res.status(500).json({
     status: false,
     message: "Terjadi kesalahan internal server",
+    error: process.env.NODE_ENV === 'development' ? err.message : undefined
   });
 });
 
-pool.connect()
-  .then(() => console.log('Database connected successfully'))
-  .catch(err => {
-    console.error('Database connection error:', err);
-  });
+const startServer = async () => {
+  try {
+    await pool.connect();
+    console.log('Database terhubung dengan sukses');
 
-const server = app.listen(PORT, '0.0.0.0', () => {
-  console.log(`Server running on port ${PORT}`);
-}).on('error', (err) => {
-  console.error('Failed to start server:', err);
-});
+    const server = app.listen(PORT, '0.0.0.0', () => {
+      console.log(`Server berjalan di port ${PORT}`);
+      console.log(`Mode: ${process.env.NODE_ENV}`);
+      console.log(`Waktu: ${new Date().toISOString()}`);
+    });
 
-process.on('SIGTERM', () => {
-  console.log('SIGTERM signal received: closing HTTP server');
-  server.close(() => {
-    console.log('HTTP server closed');
-    pool.end();
-  });
-});
+    server.on('error', (err) => {
+      console.error('Server error:', err);
+      process.exit(1);
+    });
+
+    process.on('SIGTERM', () => {
+      console.log('SIGTERM diterima: menutup HTTP server');
+      server.close(async () => {
+        console.log('HTTP server ditutup');
+        await pool.end();
+        process.exit(0);
+      });
+    });
+
+  } catch (err) {
+    console.error('Error saat startup:', err);
+    process.exit(1);
+  }
+};
+
+startServer();
 
 module.exports = app;
