@@ -95,12 +95,18 @@ app.get('/liveness', (req, res) => {
 });
 
 const corsOptions = {
-  origin: process.env.CORS_ORIGIN || "http://localhost:5173",
+  origin: [
+    process.env.CORS_ORIGIN,
+    "http://localhost:5173",
+    "https://testingbrok.vercel.app",
+  ].filter(Boolean),
   credentials: true,
   exposedHeaders: ["New-Access-Token"],
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"],
 };
+
+app.use(cors(corsOptions));
 
 app.use(cors(corsOptions));
 
