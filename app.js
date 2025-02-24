@@ -18,6 +18,7 @@ const quoteRoutes = require("./routes/quoteRoutes");
 const pointRouter = require("./routes/pointRoutes");
 const salarySlipRoutes = require("./routes/salarySlipRoutes");
 const studentRoutes = require('./routes/studentRoutes');
+const teacherRoutes = require("./routes/teacherRoutes");
 
 const app = express();
 const PORT = parseInt(process.env.PORT) || 8080;
@@ -109,7 +110,8 @@ const apiRoutes = [
   attendanceRouter,
   pointRouter,
   salarySlipRoutes,
-  studentRoutes
+  studentRoutes,
+  teacherRoutes
 ];
 
 apiRoutes.forEach((router) => app.use("/api/v1", router));
