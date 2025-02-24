@@ -6,77 +6,18 @@ const session = require("express-session");
 const pgSession = require("connect-pg-simple")(session);
 const { Pool } = require("pg");
 const cors = require("cors");
-const authConfig = require("./config/auth");
-
-// Import routes
-const userRouter = require("./routes/userRoutes");
-const academicRouter = require("./routes/academicRoutes");
-const attendanceRouter = require("./routes/attendanceRoutes");
-const newsRouter = require("./routes/newsRoutes");
-const staffRoutes = require("./routes/staffRoutes");
-const quoteRoutes = require("./routes/quoteRoutes");
-const pointRouter = require("./routes/pointRoutes");
-const salarySlipRoutes = require("./routes/salarySlipRoutes");
-const studentRoutes = require('./routes/studentRoutes');
-const teacherRoutes = require("./routes/teacherRoutes");
 
 const app = express();
 const PORT = parseInt(process.env.PORT) || 8080;
 
 console.log(`Starting application on port ${PORT}`);
-console.log(`Database URL configured: ${process.env.DATABASE_URL ? 'Yes' : 'No'}`);
 console.log(`Environment: ${process.env.NODE_ENV}`);
 
-let pool;
-try {
-  pool = new Pool({
-    connectionString: process.env.DATABASE_URL,
-    connectionTimeoutMillis: 10000,
-    max: 20,
-    idleTimeoutMillis: 30000,
-    retryDelay: 3000,
-    ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
+app.get('/_health', (req, res) => {
+  res.status(200).json({
+    status: 'healthy',
+    timestamp: new Date().toISOString()
   });
-  
-  console.log('Database pool created successfully');
-} catch (error) {
-  console.error('Failed to create database pool:', error);
-}
-
-if (pool) {
-  pool.on('connect', () => {
-    console.log('Database connected successfully');
-  });
-
-  pool.on('error', (err) => {
-    console.error('Unexpected error on idle client', err);
-  });
-}
-
-app.get('/_health', async (req, res) => {
-  try {
-    let dbStatus = 'disconnected';
-    if (pool) {
-      try {
-        await pool.query('SELECT 1');
-        dbStatus = 'connected';
-      } catch (err) {
-        console.error('Database health check failed:', err);
-      }
-    }
-    res.status(200).json({
-      status: 'healthy',
-      database: dbStatus,
-      timestamp: new Date().toISOString()
-    });
-  } catch (error) {
-    console.error('Health check failed:', error);
-    res.status(200).json({
-      status: 'healthy',
-      error: 'Health check encountered an error but service is running',
-      timestamp: new Date().toISOString()
-    });
-  }
 });
 
 app.get('/', (req, res) => {
@@ -86,14 +27,7 @@ app.get('/', (req, res) => {
   });
 });
 
-app.get('/readiness', (req, res) => {
-  res.status(200).send('Ready');
-});
-
-app.get('/liveness', (req, res) => {
-  res.status(200).send('Alive');
-});
-
+// Tambahkan penanganan CORS
 const corsOptions = {
   origin: [
     process.env.CORS_ORIGIN,
@@ -107,61 +41,135 @@ const corsOptions = {
 };
 
 app.use(cors(corsOptions));
-
-app.use(cors(corsOptions));
-
-app.use((req, res, next) => {
-  if (req.method === 'OPTIONS') {
-    return res.sendStatus(200);
-  }
-  next();
-});
-
 app.use(express.json({ limit: "5mb" }));
 app.use(express.urlencoded({ extended: true, limit: "5mb" }));
 
-if (pool) {
+let pool;
+const initializeDatabase = async () => {
   try {
-    const sessionConfig = {
-      store: new pgSession({
-        pool,
-        tableName: "sessions",
-        createTableIfMissing: true,
-      }),
-      secret: process.env.SESSION_SECRET || authConfig.session.secret,
-      resave: false,
-      saveUninitialized: false,
-      cookie: {
-        secure: process.env.NODE_ENV === "production",
-        httpOnly: true,
-        maxAge: parseInt(process.env.SESSION_MAX_AGE) || authConfig.session.cookie.maxAge,
-        sameSite: "strict"
-      },
-      name: "sessionId"
-    };
+    let connectionConfig;
+    
+    if (process.env.NODE_ENV === 'production' && process.env.DATABASE_URL.includes('cloudsql')) {
 
-    app.use(session(sessionConfig));
-    console.log('Session middleware configured successfully');
+      connectionConfig = {
+        connectionString: process.env.DATABASE_URL,
+        ssl: { rejectUnauthorized: false }
+      };
+    } else {
+      connectionConfig = {
+        connectionString: process.env.DATABASE_URL,
+        ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
+      };
+    }
+    
+    pool = new Pool({
+      ...connectionConfig,
+      connectionTimeoutMillis: 10000,
+      max: 20,
+      idleTimeoutMillis: 30000,
+      retryDelay: 3000
+    });
+    await pool.query('SELECT 1').then(() => {
+      console.log('Database connection verified successfully');
+    }).catch(err => {
+      console.error('Database connection test failed:', err.message);
+    });
+    
   } catch (error) {
-    console.error('Failed to initialize session middleware:', error);
+    console.error('Failed to initialize database pool:', error.message);
   }
-}
+};
 
-// Routes
-const apiRoutes = [
-  newsRouter,
-  staffRoutes,
-  quoteRoutes,
-  userRouter,
-  academicRouter,
-  attendanceRouter,
-  pointRouter,
-  salarySlipRoutes,
-  studentRoutes,
-  teacherRoutes
-];
+const setupSession = () => {
+  if (pool) {
+    try {
+      const sessionSecret = process.env.SESSION_SECRET || 'granada-session-fallback-key';
+      
+      if (!sessionSecret) {
+        console.warn('SESSION_SECRET not provided, using insecure default secret');
+      }
+      
+      app.use(session({
+        store: new pgSession({
+          pool,
+          tableName: "sessions",
+          createTableIfMissing: true,
+        }),
+        secret: sessionSecret,
+        resave: false,
+        saveUninitialized: false,
+        cookie: {
+          secure: process.env.NODE_ENV === "production",
+          httpOnly: true,
+          maxAge: parseInt(process.env.SESSION_MAX_AGE) || 7 * 24 * 60 * 60 * 1000,
+          sameSite: "strict"
+        },
+        name: "sessionId"
+      }));
+      console.log('Session middleware configured with database');
+    } catch (error) {
+      console.error('Failed to initialize session with database:', error.message);
+      setupMemorySession();
+    }
+  } else {
+    console.warn('Database not available, using memory session');
+    setupMemorySession();
+  }
+};
 
-apiRoutes.forEach((router) => app.use("/api/v1", router));
+const setupMemorySession = () => {
+  app.use(session({
+    secret: process.env.SESSION_SECRET || 'granada-session-fallback-key',
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+      secure: process.env.NODE_ENV === "production",
+      httpOnly: true,
+      maxAge: 86400000
+    }
+  }));
+  console.log('Session middleware configured with memory store');
+};
+
+const setupRoutes = () => {
+  try {
+    // Import routes
+    const userRouter = require("./routes/userRoutes");
+    const academicRouter = require("./routes/academicRoutes");
+    const attendanceRouter = require("./routes/attendanceRoutes");
+    const newsRouter = require("./routes/newsRoutes");
+    const staffRoutes = require("./routes/staffRoutes");
+    const quoteRoutes = require("./routes/quoteRoutes");
+    const pointRouter = require("./routes/pointRoutes");
+    const salarySlipRoutes = require("./routes/salarySlipRoutes");
+    const studentRoutes = require('./routes/studentRoutes');
+    const teacherRoutes = require("./routes/teacherRoutes");
+    
+    const apiRoutes = [
+      newsRouter,
+      staffRoutes,
+      quoteRoutes,
+      userRouter,
+      academicRouter,
+      attendanceRouter, 
+      pointRouter,
+      salarySlipRoutes,
+      studentRoutes,
+      teacherRoutes
+    ];
+    
+    apiRoutes.forEach((router) => app.use("/api/v1", router));
+    console.log('Routes configured successfully');
+  } catch (error) {
+    console.error('Error setting up routes:', error.message);
+    app.use('/api/v1', (req, res) => {
+      res.status(503).json({
+        status: false,
+        message: "API temporarily unavailable"
+      });
+    });
+  }
+};
 
 // 404 handler
 app.use((req, res) => {
@@ -181,55 +189,34 @@ app.use((err, req, res, next) => {
   });
 });
 
-const signalReady = () => {
-  console.log('Ready signal endpoints configured');
-};
-
-signalReady();
-
 const startServer = async () => {
-  console.log('Starting server on port:', PORT);
   const server = app.listen(PORT, '0.0.0.0', () => {
     console.log(`Server is running at http://0.0.0.0:${PORT}`);
-    console.log('Environment:', process.env.NODE_ENV);
   });
 
-  server.on('error', (error) => {
-    console.error('Server error occurred:', error);
-    process.exit(1);
-  });
-  let dbConnected = false;
-  if (pool) {
-    try {
-      await pool.query('SELECT 1');
-      console.log('Database connection verified');
-      dbConnected = true;
-    } catch (dbError) {
-      console.error('Database connection check failed:', dbError);
-      console.log('Server running without confirmed DB connection');
-    }
+  try {
+    await initializeDatabase();
+    setupSession();
+    setupRoutes();
+  } catch (error) {
+    console.error('Error during application initialization:', error);
+    console.log('Application continuing in degraded mode');
   }
-  console.log('Database connected:', dbConnected);
-  
+
   process.on('SIGTERM', () => {
-    console.log('SIGTERM received. Shutting down gracefully...');
+    console.log('SIGTERM received, shutting down gracefully');
     server.close(() => {
+      if (pool) pool.end();
       console.log('Server closed');
-      if (pool) {
-        pool.end(() => {
-          console.log('Database pool closed');
-          process.exit(0);
-        });
-      } else {
-        process.exit(0);
-      }
     });
   });
+  
+  return server;
 };
 
 startServer().catch(err => {
-  console.error('Startup error:', err);
-  console.log('Application continuing despite startup error');
+  console.error('Fatal startup error:', err);
+  console.log('Server will continue running in minimal mode');
 });
 
 module.exports = app;
