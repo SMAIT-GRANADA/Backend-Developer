@@ -1,4 +1,4 @@
-const teacherService = require('../services/teacherService');
+const teacherService = require("../services/teacherService");
 
 async function getAllTeachers(req, res) {
   try {
@@ -10,14 +10,14 @@ async function getAllTeachers(req, res) {
 
     return res.status(200).json(result);
   } catch (error) {
-    console.error('Error in getAllTeachers controller:', error);
+    console.error("Error in getAllTeachers controller:", error);
     return res.status(500).json({
       status: false,
-      message: 'Terjadi kesalahan internal server'
+      message: "Terjadi kesalahan internal server",
     });
   }
 }
 
 module.exports = {
-  getAllTeachers
+  getAllTeachers,
 };
