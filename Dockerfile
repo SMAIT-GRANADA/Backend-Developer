@@ -1,6 +1,5 @@
 FROM node:18-bullseye-slim
 
-# Install dependencies for Node.js application
 RUN apt-get update -y && \
     apt-get install -y openssl libssl1.1 ca-certificates curl dumb-init && \
     apt-get clean && \
@@ -28,7 +27,7 @@ USER granada
 
 ENTRYPOINT ["/usr/bin/dumb-init", "--"]
 
-HEALTHCHECK --interval=30s --timeout=30s --start-period=30s --retries=3 \
-    CMD curl -f http://localhost:${PORT}/_health || exit 1
+HEALTHCHECK --interval=30s --timeout=30s --start-period=60s --retries=3 \
+    CMD curl -f http://localhost:${PORT}/_health
 
 CMD ["node", "app.js"]
