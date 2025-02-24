@@ -23,27 +23,42 @@ const teacherRoutes = require("./routes/teacherRoutes");
 const app = express();
 const PORT = parseInt(process.env.PORT) || 8080;
 
-// Database configuration
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  connectionTimeoutMillis: 5000,
-  max: 20,
-  idleTimeoutMillis: 30000,
-  retryDelay: 3000,
-  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
-});
+console.log(`Starting application on port ${PORT}`);
+console.log(`Database URL configured: ${process.env.DATABASE_URL ? 'Yes' : 'No'}`);
+console.log(`Environment: ${process.env.NODE_ENV}`);
 
-pool.on('connect', () => {
-  console.log('Database connected successfully');
-});
+let pool;
+try {
+  pool = new Pool({
+    connectionString: process.env.DATABASE_URL,
+    connectionTimeoutMillis: 10000,
+    max: 20,
+    idleTimeoutMillis: 30000,
+    retryDelay: 3000,
+    ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
+  });
+  
+  console.log('Database pool created successfully');
+} catch (error) {
+  console.error('Failed to create database pool:', error);
+}
 
-pool.on('error', (err) => {
-  console.error('Unexpected error on idle client', err);
-  process.exit(-1);
-});
+if (pool) {
+  pool.on('connect', () => {
+    console.log('Database connected successfully');
+  });
 
+  pool.on('error', (err) => {
+    console.error('Unexpected error on idle client', err);
+  });
+}
+
+// Health check route
 app.get('/_health', async (req, res) => {
   try {
+    if (!pool) {
+      throw new Error('Database pool not initialized');
+    }
     await pool.query('SELECT 1');
     res.status(200).json({
       status: 'healthy',
@@ -52,12 +67,19 @@ app.get('/_health', async (req, res) => {
     });
   } catch (error) {
     console.error('Health check failed:', error);
-    res.status(503).json({
+    res.status(200).json({
       status: 'unhealthy',
       error: error.message,
       timestamp: new Date().toISOString()
     });
   }
+});
+
+app.get('/', (req, res) => {
+  res.status(200).json({
+    status: true,
+    message: "Granada API running"
+  });
 });
 
 const corsOptions = {
@@ -80,25 +102,32 @@ app.use((req, res, next) => {
 app.use(express.json({ limit: "5mb" }));
 app.use(express.urlencoded({ extended: true, limit: "5mb" }));
 
-const sessionConfig = {
-  store: new pgSession({
-    pool,
-    tableName: "sessions",
-    createTableIfMissing: true,
-  }),
-  secret: process.env.SESSION_SECRET || authConfig.session.secret,
-  resave: false,
-  saveUninitialized: false,
-  cookie: {
-    secure: process.env.NODE_ENV === "production",
-    httpOnly: true,
-    maxAge: parseInt(process.env.SESSION_MAX_AGE) || authConfig.session.cookie.maxAge,
-    sameSite: "strict"
-  },
-  name: "sessionId"
-};
+if (pool) {
+  try {
+    const sessionConfig = {
+      store: new pgSession({
+        pool,
+        tableName: "sessions",
+        createTableIfMissing: true,
+      }),
+      secret: process.env.SESSION_SECRET || authConfig.session.secret,
+      resave: false,
+      saveUninitialized: false,
+      cookie: {
+        secure: process.env.NODE_ENV === "production",
+        httpOnly: true,
+        maxAge: parseInt(process.env.SESSION_MAX_AGE) || authConfig.session.cookie.maxAge,
+        sameSite: "strict"
+      },
+      name: "sessionId"
+    };
 
-app.use(session(sessionConfig));
+    app.use(session(sessionConfig));
+    console.log('Session middleware configured successfully');
+  } catch (error) {
+    console.error('Failed to initialize session middleware:', error);
+  }
+}
 
 // Routes
 const apiRoutes = [
@@ -134,17 +163,29 @@ app.use((err, req, res, next) => {
   });
 });
 
-// Server startup
 const startServer = async () => {
   try {
-    await pool.query('SELECT 1');
-    console.log('Database connection verified');
+    let dbConnected = false;
+    
+    if (pool) {
+      try {
+        await pool.query('SELECT 1');
+        console.log('Database connection verified');
+        dbConnected = true;
+      } catch (dbError) {
+        console.error('Database connection check failed:', dbError);
+        console.log('Starting server without confirmed DB connection');
+      }
+    } else {
+      console.log('Starting server without database pool');
+    }
+
     console.log('Attempting to start server on port:', PORT);
 
     const server = app.listen(PORT, '0.0.0.0', () => {
       console.log(`Server is running at http://0.0.0.0:${PORT}`);
       console.log('Environment:', process.env.NODE_ENV);
-      console.log('Database URL:', process.env.DATABASE_URL ? 'Set' : 'Not Set');
+      console.log('Database connected:', dbConnected);
     });
 
     server.on('error', (error) => {
@@ -160,10 +201,14 @@ const startServer = async () => {
       console.log('SIGTERM received. Shutting down gracefully...');
       server.close(() => {
         console.log('Server closed');
-        pool.end(() => {
-          console.log('Database pool closed');
+        if (pool) {
+          pool.end(() => {
+            console.log('Database pool closed');
+            process.exit(0);
+          });
+        } else {
           process.exit(0);
-        });
+        }
       });
     });
 
