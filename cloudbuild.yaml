@@ -31,7 +31,6 @@ steps:
     - 'managed'
     - '--allow-unauthenticated'
     - '--cpu-boost'
-    - '--startup-cpu-boost'
     - '--execution-environment'
     - 'gen2'
     - '--memory'
