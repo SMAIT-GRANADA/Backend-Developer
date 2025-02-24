@@ -74,7 +74,6 @@ jobs:
           --min-instances=1 \
           --max-instances=8 \
           --cpu-boost \
-          --startup-cpu-boost \
           --set-cloudsql-instances=river-sky-416523:asia-southeast2:pinanda1 \
           --set-env-vars="NODE_ENV=production,DATABASE_URL=postgresql://postgres:${{ secrets.DB_PASSWORD }}@/postgres?host=/cloudsql/river-sky-416523:asia-southeast2:pinanda1,CORS_ORIGIN=${{ secrets.CORS_ORIGIN }},JWT_ACCESS_SECRET=${{ secrets.JWT_ACCESS_SECRET }},JWT_REFRESH_SECRET=${{ secrets.JWT_REFRESH_SECRET }},SESSION_SECRET=${{ secrets.SESSION_SECRET }},EMAIL_USER=${{ secrets.EMAIL_USER }},EMAIL_PASS=${{ secrets.EMAIL_PASS }},IMAGEKIT_PUBLIC_KEY=${{ secrets.IMAGEKIT_PUBLIC_KEY }},IMAGEKIT_PRIVATE_KEY=${{ secrets.IMAGEKIT_PRIVATE_KEY }},IMAGEKIT_URL_ENDPOINT=${{ secrets.IMAGEKIT_URL_ENDPOINT }},GOOGLE_CLOUD_PROJECT_ID=river-sky-416523,GOOGLE_CLOUD_BUCKET_NAME=${{ secrets.GOOGLE_CLOUD_BUCKET_NAME }}" \
           --service-account=${{ secrets.CLOUD_RUN_SERVICE_ACCOUNT }}
