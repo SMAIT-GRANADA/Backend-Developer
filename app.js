@@ -11,7 +11,6 @@ const app = express();
 const PORT = parseInt(process.env.PORT) || 8080;
 
 console.log(`Starting application on port ${PORT}`);
-console.log(`Environment: ${process.env.NODE_ENV}`);
 
 app.get("/_health", (req, res) => {
   res.status(200).json({
@@ -27,7 +26,6 @@ app.get("/", (req, res) => {
   });
 });
 
-// Tambahkan penanganan CORS
 const corsOptions = {
   origin: [
     process.env.CORS_ORIGIN,
@@ -74,17 +72,26 @@ const initializeDatabase = async () => {
       idleTimeoutMillis: 30000,
       retryDelay: 3000,
     });
-    await pool
-      .query("SELECT 1")
-      .then(() => {
-        console.log("Database connection verified successfully");
-      })
-      .catch((err) => {
-        console.error("Database connection test failed:", err.message);
-      });
+    await pool.query("SELECT 1");
+    console.log("Database connection verified successfully");
   } catch (error) {
-    console.error("Failed to initialize database pool:", error.message);
+    console.error("Database connection failed:", error.message);
   }
+};
+
+const setupMemorySession = () => {
+  app.use(
+    session({
+      secret: process.env.SESSION_SECRET || "granada-session-fallback-key",
+      resave: false,
+      saveUninitialized: false,
+      cookie: {
+        secure: process.env.NODE_ENV === "production",
+        httpOnly: true,
+        maxAge: 86400000,
+      },
+    })
+  );
 };
 
 const setupSession = () => {
@@ -92,12 +99,6 @@ const setupSession = () => {
     try {
       const sessionSecret =
         process.env.SESSION_SECRET || "granada-session-fallback-key";
-
-      if (!sessionSecret) {
-        console.warn(
-          "SESSION_SECRET not provided, using insecure default secret"
-        );
-      }
 
       app.use(
         session({
@@ -119,122 +120,111 @@ const setupSession = () => {
           name: "sessionId",
         })
       );
-      console.log("Session middleware configured with database");
     } catch (error) {
-      console.error(
-        "Failed to initialize session with database:",
-        error.message
-      );
+      console.error("Failed to setup database session:", error.message);
       setupMemorySession();
     }
   } else {
-    console.warn("Database not available, using memory session");
     setupMemorySession();
   }
 };
 
-const setupMemorySession = () => {
-  app.use(
-    session({
-      secret: process.env.SESSION_SECRET || "granada-session-fallback-key",
-      resave: false,
-      saveUninitialized: false,
-      cookie: {
-        secure: process.env.NODE_ENV === "production",
-        httpOnly: true,
-        maxAge: 86400000,
-      },
-    })
-  );
-  console.log("Session middleware configured with memory store");
-};
-
 const setupRoutes = () => {
   try {
-    // Import routes
     const userRouter = require("./routes/userRoutes");
     const academicRouter = require("./routes/academicRoutes");
     const attendanceRouter = require("./routes/attendanceRoutes");
     const newsRouter = require("./routes/newsRoutes");
-    const staffRoutes = require("./routes/staffRoutes");
-    const quoteRoutes = require("./routes/quoteRoutes");
+    const staffRouter = require("./routes/staffRoutes");
+    const quoteRouter = require("./routes/quoteRoutes");
     const pointRouter = require("./routes/pointRoutes");
-    const salarySlipRoutes = require("./routes/salarySlipRoutes");
-    const studentRoutes = require("./routes/studentRoutes");
-    const teacherRoutes = require("./routes/teacherRoutes");
+    const salarySlipRouter = require("./routes/salarySlipRoutes");
+    const studentRouter = require("./routes/studentRoutes");
+    const teacherRouter = require("./routes/teacherRoutes");
 
     const apiRoutes = [
       newsRouter,
-      staffRoutes,
-      quoteRoutes,
+      staffRouter,
+      quoteRouter,
       userRouter,
       academicRouter,
       attendanceRouter,
       pointRouter,
-      salarySlipRoutes,
-      studentRoutes,
-      teacherRoutes,
+      salarySlipRouter,
+      studentRouter,
+      teacherRouter,
     ];
 
-    apiRoutes.forEach((router) => app.use("/api/v1", router));
-    console.log("Routes configured successfully");
+    apiRoutes.forEach((router, index) => {
+      if (!router) {
+        console.error(`Router at index ${index} is undefined`);
+        return;
+      }
+      app.use("/api/v1", router);
+    });
+    
+    return true;
   } catch (error) {
-    console.error("Error setting up routes:", error.message);
+    console.error("Error setting up routes:", error);
     app.use("/api/v1", (req, res) => {
       res.status(503).json({
         status: false,
         message: "API temporarily unavailable",
+        path: req.originalUrl
       });
     });
+    return false;
   }
 };
 
-// 404 handler
-app.use((req, res) => {
-  res.status(404).json({
-    status: false,
-    message: "Route tidak ditemukan",
-  });
-});
-
-// Global error handler
-app.use((err, req, res, next) => {
-  console.error("Error:", err);
-  res.status(err.status || 500).json({
-    status: false,
-    message: err.message || "Terjadi kesalahan internal server",
-    error: process.env.NODE_ENV === "development" ? err.stack : undefined,
-  });
-});
-
 const startServer = async () => {
-  const server = app.listen(PORT, "0.0.0.0", () => {
-    console.log(`Server is running at http://0.0.0.0:${PORT}`);
-  });
-
   try {
     await initializeDatabase();
     setupSession();
     setupRoutes();
+
+    app.use((req, res) => {
+      res.status(404).json({
+        status: false,
+        message: "Route tidak ditemukan",
+        path: req.originalUrl
+      });
+    });
+    
+    // Global error handler
+    app.use((err, req, res, next) => {
+      console.error("Error:", err);
+      res.status(err.status || 500).json({
+        status: false,
+        message: err.message || "Terjadi kesalahan internal server",
+        error: process.env.NODE_ENV === "development" ? err.stack : undefined,
+      });
+    });
+
+    const server = app.listen(PORT, "0.0.0.0", () => {
+      console.log(`Server is running at http://0.0.0.0:${PORT}`);
+    });
+    
+    process.on("SIGTERM", () => {
+      console.log("SIGTERM received, shutting down gracefully");
+      server.close(() => {
+        if (pool) pool.end();
+      });
+    });
+    
+    return server;
   } catch (error) {
     console.error("Error during application initialization:", error);
-    console.log("Application continuing in degraded mode");
-  }
 
-  process.on("SIGTERM", () => {
-    console.log("SIGTERM received, shutting down gracefully");
-    server.close(() => {
-      if (pool) pool.end();
-      console.log("Server closed");
+    const server = app.listen(PORT, "0.0.0.0", () => {
+      console.log(`Server running in degraded mode at http://0.0.0.0:${PORT}`);
     });
-  });
-
-  return server;
+    return server;
+  }
 };
 
 startServer().catch((err) => {
   console.error("Fatal startup error:", err);
-  console.log("Server will continue running in minimal mode");
 });
 
 module.exports = app;
