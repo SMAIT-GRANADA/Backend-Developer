@@ -1,1 +1,1 @@
-#  SMAIT GRANADA Samarinda
+#  SMAIT GRANADA
