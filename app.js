@@ -20,6 +20,9 @@ console.log("- DATABASE_URL exists:", !!process.env.DATABASE_URL);
 console.log("- JWT_ACCESS_SECRET exists:", !!process.env.JWT_ACCESS_SECRET);
 console.log("- JWT_REFRESH_SECRET exists:", !!process.env.JWT_REFRESH_SECRET);
 console.log("- SESSION_SECRET exists:", !!process.env.SESSION_SECRET);
+console.log("- GCS_KEYFILE exists:", !!process.env.GCS_KEYFILE);
+console.log("- GOOGLE_CLOUD_PROJECT_ID exists:", !!process.env.GOOGLE_CLOUD_PROJECT_ID);
+console.log("- GOOGLE_CLOUD_BUCKET_NAME exists:", !!process.env.GOOGLE_CLOUD_BUCKET_NAME);
 
 console.log("Checking directory structure:");
 const checkDir = (dir) => {
@@ -36,6 +39,11 @@ const checkDir = (dir) => {
 checkDir('./routes');
 checkDir('./controllers');
 checkDir('./services');
+checkDir('./config');
+
+if (process.env.GCS_KEYFILE) {
+  checkDir('./config/keys');
+}
 
 app.get("/_health", (req, res) => {
   res.status(200).json({
@@ -75,8 +83,8 @@ const initializeDatabase = async () => {
     console.log("- Contains 'cloudsql':", dbUrl.includes('cloudsql'));
     console.log("- Contains 'postgresql':", dbUrl.includes('postgresql'));
     console.log("Attempting database connection with config:", {
-      host: process.env.DATABASE_URL.split('@')[1]?.split('/')[0] || 'unknown',
-      database: process.env.DATABASE_URL.split('/').pop() || 'unknown',
+      host: process.env.DATABASE_URL?.split('@')[1]?.split('/')[0] || 'unknown',
+      database: process.env.DATABASE_URL?.split('/').pop() || 'unknown',
       ssl: process.env.NODE_ENV === 'production',
     });
     
@@ -109,6 +117,7 @@ const initializeDatabase = async () => {
     });
     await pool.query("SELECT 1");
     console.log("Database connection verified successfully");
+    return true;
   } catch (error) {
     console.error("Database connection failed:", error);
     console.error("Error details:", {
@@ -116,6 +125,7 @@ const initializeDatabase = async () => {
       message: error.message,
       stack: error.stack
     });
+    return false;
   }
 };
 
@@ -175,92 +185,44 @@ const setupSession = () => {
 
 const startServer = async () => {
   try {
-    await initializeDatabase();
+    const dbConnected = await initializeDatabase();
     setupSession();
-    console.log("Setting up routes directly...");
     
-    try {
-      console.log("Loading userRoutes...");
-      app.use("/api/v1", require("./routes/userRoutes"));
-      console.log("userRoutes loaded successfully");
-    } catch (error) {
-      console.error("Error loading userRoutes:", error.message);
-    }
+    console.log("Setting up routes individually...");
+    const setupRoute = (name, routePath) => {
+      try {
+        console.log(`Loading ${name}...`);
+        const router = require(routePath);
+        app.use("/api/v1", router);
+        console.log(`${name} loaded successfully`);
+        return true;
+      } catch (error) {
+        console.error(`Error loading ${name}:`, error.message);
+        console.error(error.stack);
+        return false;
+      }
+    };
     
-    try {
-      console.log("Loading academicRoutes...");
-      app.use("/api/v1", require("./routes/academicRoutes"));
-      console.log("academicRoutes loaded successfully");
-    } catch (error) {
-      console.error("Error loading academicRoutes:", error.message);
-    }
-    
-    try {
-      console.log("Loading attendanceRoutes...");
-      app.use("/api/v1", require("./routes/attendanceRoutes"));
-      console.log("attendanceRoutes loaded successfully");
-    } catch (error) {
-      console.error("Error loading attendanceRoutes:", error.message);
-    }
-    
-    try {
-      console.log("Loading newsRoutes...");
-      app.use("/api/v1", require("./routes/newsRoutes"));
-      console.log("newsRoutes loaded successfully");
-    } catch (error) {
-      console.error("Error loading newsRoutes:", error.message);
-    }
-    
-    try {
-      console.log("Loading staffRoutes...");
-      app.use("/api/v1", require("./routes/staffRoutes"));
-      console.log("staffRoutes loaded successfully");
-    } catch (error) {
-      console.error("Error loading staffRoutes:", error.message);
-    }
-    
-    try {
-      console.log("Loading quoteRoutes...");
-      app.use("/api/v1", require("./routes/quoteRoutes"));
-      console.log("quoteRoutes loaded successfully");
-    } catch (error) {
-      console.error("Error loading quoteRoutes:", error.message);
-    }
-    
-    try {
-      console.log("Loading pointRoutes...");
-      app.use("/api/v1", require("./routes/pointRoutes"));
-      console.log("pointRoutes loaded successfully");
-    } catch (error) {
-      console.error("Error loading pointRoutes:", error.message);
-    }
-    
-    try {
-      console.log("Loading salarySlipRoutes...");
-      app.use("/api/v1", require("./routes/salarySlipRoutes"));
-      console.log("salarySlipRoutes loaded successfully");
-    } catch (error) {
-      console.error("Error loading salarySlipRoutes:", error.message);
-    }
-    
-    try {
-      console.log("Loading studentRoutes...");
-      app.use("/api/v1", require("./routes/studentRoutes"));
-      console.log("studentRoutes loaded successfully");
-    } catch (error) {
-      console.error("Error loading studentRoutes:", error.message);
-    }
-    
-    try {
-      console.log("Loading teacherRoutes...");
-      app.use("/api/v1", require("./routes/teacherRoutes"));
-      console.log("teacherRoutes loaded successfully");
-    } catch (error) {
-      console.error("Error loading teacherRoutes:", error.message);
-    }
-    
-    console.log("All routes setup complete");
+    // Define routes with their paths
+    const routes = [
+      { name: 'userRoutes', path: './routes/userRoutes' },
+      { name: 'academicRoutes', path: './routes/academicRoutes' },
+      { name: 'attendanceRoutes', path: './routes/attendanceRoutes' },
+      { name: 'newsRoutes', path: './routes/newsRoutes' },
+      { name: 'staffRoutes', path: './routes/staffRoutes' },
+      { name: 'quoteRoutes', path: './routes/quoteRoutes' },
+      { name: 'pointRoutes', path: './routes/pointRoutes' },
+      { name: 'salarySlipRoutes', path: './routes/salarySlipRoutes' },
+      { name: 'studentRoutes', path: './routes/studentRoutes' },
+      { name: 'teacherRoutes', path: './routes/teacherRoutes' }
+    ];
 
+    const results = routes.map(route => setupRoute(route.name, route.path));
+    const successCount = results.filter(Boolean).length;
+    
+    console.log(`Routes setup complete: ${successCount}/${routes.length} routes loaded successfully`);
+
+    // 404 handler for routes that don't exist
     app.use((req, res) => {
       res.status(404).json({
         status: false,
@@ -269,6 +231,7 @@ const startServer = async () => {
       });
     });
 
+    // Global error handler
     app.use((err, req, res, next) => {
       console.error("Error details:", {
         message: err.message,
