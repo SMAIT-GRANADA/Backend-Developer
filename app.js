@@ -6,39 +6,12 @@ const session = require("express-session");
 const pgSession = require("connect-pg-simple")(session);
 const { Pool } = require("pg");
 const cors = require("cors");
-const fs = require('fs');
 const path = require('path');
 
 const app = express();
 const PORT = parseInt(process.env.PORT) || 8080;
 
 console.log(`Starting application on port ${PORT}`);
-
-console.log("Environment variables check:");
-console.log("- NODE_ENV:", process.env.NODE_ENV);
-console.log("- DATABASE_URL exists:", !!process.env.DATABASE_URL);
-console.log("- JWT_ACCESS_SECRET exists:", !!process.env.JWT_ACCESS_SECRET);
-console.log("- JWT_REFRESH_SECRET exists:", !!process.env.JWT_REFRESH_SECRET);
-console.log("- SESSION_SECRET exists:", !!process.env.SESSION_SECRET);
-console.log("- GOOGLE_CLOUD_PROJECT_ID exists:", !!process.env.GOOGLE_CLOUD_PROJECT_ID);
-console.log("- GOOGLE_CLOUD_BUCKET_NAME exists:", !!process.env.GOOGLE_CLOUD_BUCKET_NAME);
-
-console.log("Checking directory structure:");
-const checkDir = (dir) => {
-  try {
-    const files = fs.readdirSync(dir);
-    console.log(`Directory ${dir} contains:`, files);
-    return true;
-  } catch (e) {
-    console.error(`Error reading directory ${dir}:`, e.message);
-    return false;
-  }
-};
-
-checkDir('./routes');
-checkDir('./controllers');
-checkDir('./services');
-checkDir('./config');
 
 app.get("/_health", (req, res) => {
   res.status(200).json({
@@ -73,86 +46,54 @@ app.use(express.urlencoded({ extended: true, limit: "5mb" }));
 let pool;
 const initializeDatabase = async () => {
   try {
-    console.log("Database URL format check:");
-    const dbUrl = process.env.DATABASE_URL || '';
-    console.log("- Contains 'cloudsql':", dbUrl.includes('cloudsql'));
-    console.log("- Contains 'postgresql':", dbUrl.includes('postgresql'));
-    let dbInfo = { host: 'unknown', database: 'unknown' };
-    try {
-      const urlParts = process.env.DATABASE_URL.split('/');
-      const hostPart = urlParts[2].split('@')[1] || urlParts[2];
-      dbInfo = {
-        host: hostPart || 'unknown',
-        database: urlParts[urlParts.length - 1] || 'unknown',
-      };
-    } catch (e) {
-      console.log("Could not parse DATABASE_URL parts for logging");
-    }
-    
-    console.log("Attempting database connection with config:", {
-      host: dbInfo.host,
-      database: dbInfo.database,
-      ssl: process.env.NODE_ENV === 'production'
-    });
     let sslConfig;
     if (process.env.NODE_ENV === 'production') {
-      console.log("Using production SSL configuration");
       sslConfig = { rejectUnauthorized: false };
     } else {
-      console.log("Using development configuration (no SSL)");
       sslConfig = false;
     }
     
-    try {
+    pool = new Pool({
+      connectionString: process.env.DATABASE_URL,
+      ssl: sslConfig,
+      connectionTimeoutMillis: 10000,
+      max: 20,
+      idleTimeoutMillis: 30000,
+      retryDelay: 3000,
+    });
+    
+    await pool.query("SELECT 1");
+    console.log("Database connection verified successfully");
+    return true;
+  } catch (sslError) {
+    if (sslError.message && sslError.message.includes('SSL')) {
+      console.log("SSL connection failed, retrying without SSL...");
+      
       pool = new Pool({
         connectionString: process.env.DATABASE_URL,
-        ssl: sslConfig,
+        ssl: false,
         connectionTimeoutMillis: 10000,
         max: 20,
         idleTimeoutMillis: 30000,
         retryDelay: 3000,
       });
       
-      await pool.query("SELECT 1");
-      console.log("Database connection verified successfully");
-      return true;
-    } catch (sslError) {
-      if (sslError.message && sslError.message.includes('SSL')) {
-        console.log("SSL connection failed, retrying without SSL...");
-        console.error("SSL Error details:", {
-          code: sslError.code,
-          message: sslError.message
-        });
-        
-        pool = new Pool({
-          connectionString: process.env.DATABASE_URL,
-          ssl: false,
-          connectionTimeoutMillis: 10000,
-          max: 20,
-          idleTimeoutMillis: 30000,
-          retryDelay: 3000,
-        });
-        
+      try {
         await pool.query("SELECT 1");
         console.log("Database connection without SSL verified successfully");
         return true;
-      } else {
-        throw sslError;
+      } catch (error) {
+        console.error("Database connection failed:", error.message);
+        return false;
       }
+    } else {
+      console.error("Database connection failed:", sslError.message);
+      return false;
     }
-  } catch (error) {
-    console.error("Database connection ultimately failed:", error);
-    console.error("Error details:", {
-      code: error.code,
-      message: error.message,
-      stack: error.stack
-    });
-    return false;
   }
 };
 
 const setupMemorySession = () => {
-  console.log("Setting up memory session");
   app.use(
     session({
       secret: process.env.SESSION_SECRET || "granada-session-fallback-key",
@@ -165,10 +106,10 @@ const setupMemorySession = () => {
       },
     })
   );
+  console.log("Memory session setup complete");
 };
 
 const setupSession = () => {
-  console.log("Setting up session middleware");
   if (pool) {
     try {
       const sessionSecret =
@@ -205,44 +146,56 @@ const setupSession = () => {
   }
 };
 
-const startServer = async () => {
+const setupRoutes = () => {
   try {
-    await initializeDatabase();
-    setupSession();
-    
-    console.log("Setting up routes individually...");
-    const routeResults = [];
-    const setupRoute = (name, routePath) => {
-      try {
-        console.log(`Loading ${name}...`);
-        const router = require(routePath);
-        app.use("/api/v1", router);
-        console.log(`${name} loaded successfully`);
-        routeResults.push({ name, success: true });
-        return true;
-      } catch (error) {
-        console.error(`Error loading ${name}:`, error.message);
-        routeResults.push({ name, success: false, error: error.message });
-        return false;
-      }
-    };
     const routes = [
-      { name: 'userRoutes', path: './routes/userRoutes' },
-      { name: 'academicRoutes', path: './routes/academicRoutes' },
-      { name: 'attendanceRoutes', path: './routes/attendanceRoutes' },
       { name: 'newsRoutes', path: './routes/newsRoutes' },
       { name: 'staffRoutes', path: './routes/staffRoutes' },
       { name: 'quoteRoutes', path: './routes/quoteRoutes' },
+      { name: 'userRoutes', path: './routes/userRoutes' },
+      { name: 'academicRoutes', path: './routes/academicRoutes' },
+      { name: 'attendanceRoutes', path: './routes/attendanceRoutes' },
       { name: 'pointRoutes', path: './routes/pointRoutes' },
       { name: 'salarySlipRoutes', path: './routes/salarySlipRoutes' },
       { name: 'studentRoutes', path: './routes/studentRoutes' },
       { name: 'teacherRoutes', path: './routes/teacherRoutes' }
     ];
+    
+    let loadedCount = 0;
     for (const route of routes) {
-      setupRoute(route.name, route.path);
+      try {
+        const router = require(route.path);
+        if (router) {
+          app.use("/api/v1", router);
+          loadedCount++;
+        } else {
+          console.error(`Router ${route.name} is undefined`);
+        }
+      } catch (routeError) {
+        console.error(`Error loading ${route.name}:`, routeError.message);
+      }
     }
-    const successCount = routeResults.filter(r => r.success).length;
-    console.log(`Routes setup complete: ${successCount}/${routes.length} routes loaded successfully`);
+    
+    console.log(`Routes setup complete: ${loadedCount}/${routes.length} routes loaded successfully`);
+    return loadedCount > 0;
+  } catch (error) {
+    console.error("Error setting up routes:", error);
+    app.use("/api/v1", (req, res) => {
+      res.status(503).json({
+        status: false,
+        message: "API temporarily unavailable",
+        path: req.originalUrl
+      });
+    });
+    return false;
+  }
+};
+
+const startServer = async () => {
+  try {
+    const dbConnected = await initializeDatabase();
+    setupSession();
+    const routesSetup = setupRoutes();
     
     // Handler untuk route 404
     app.use((req, res) => {
@@ -255,12 +208,7 @@ const startServer = async () => {
     
     // Global error handler
     app.use((err, req, res, next) => {
-      console.error("Error details:", {
-        message: err.message,
-        stack: err.stack,
-        path: req.originalUrl,
-        method: req.method
-      });
+      console.error("Error:", err.message);
       
       res.status(err.status || 500).json({
         status: false,
@@ -270,7 +218,11 @@ const startServer = async () => {
     });
 
     const server = app.listen(PORT, "0.0.0.0", () => {
-      console.log(`Server is running at http://0.0.0.0:${PORT}`);
+      if (dbConnected && routesSetup) {
+        console.log(`Server is running at http://0.0.0.0:${PORT}`);
+      } else {
+        console.log(`Server running in degraded mode at http://0.0.0.0:${PORT}`);
+      }
     });
     
     process.on("SIGTERM", () => {
