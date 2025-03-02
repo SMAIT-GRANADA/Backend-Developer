@@ -7,7 +7,7 @@ steps:
   # Generate Prisma Client
   - name: 'node:18'
     entrypoint: npx
-    args: ['prisma', 'generate']
+    args: ["prisma", "migrate", "dev"]
 
   # Build container image
   - name: 'gcr.io/cloud-builders/docker'
@@ -51,7 +51,7 @@ steps:
     - 'river-sky-416523:asia-southeast2:pinanda1'
     - '--set-env-vars'
     - |
-      DATABASE_URL=postgresql://postgres:${_DB_PASS}@/postgres?host=/cloudsql/river-sky-416523:asia-southeast2:pinanda1,
+      DATABASE_URL=DATABASE_URL=DATABASE_URL=postgresql://postgres:${_DB_PASS}@localhost/postgres?host=/cloudsql/river-sky-416523:asia-southeast2:pinanda1,
       NODE_ENV=production,
       JWT_ACCESS_SECRET=${_JWT_ACCESS_SECRET},
       JWT_REFRESH_SECRET=${_JWT_REFRESH_SECRET},
