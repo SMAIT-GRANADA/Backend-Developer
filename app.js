@@ -20,7 +20,6 @@ console.log("- DATABASE_URL exists:", !!process.env.DATABASE_URL);
 console.log("- JWT_ACCESS_SECRET exists:", !!process.env.JWT_ACCESS_SECRET);
 console.log("- JWT_REFRESH_SECRET exists:", !!process.env.JWT_REFRESH_SECRET);
 console.log("- SESSION_SECRET exists:", !!process.env.SESSION_SECRET);
-console.log("- GCS_KEYFILE exists:", !!process.env.GCS_KEYFILE);
 console.log("- GOOGLE_CLOUD_PROJECT_ID exists:", !!process.env.GOOGLE_CLOUD_PROJECT_ID);
 console.log("- GOOGLE_CLOUD_BUCKET_NAME exists:", !!process.env.GOOGLE_CLOUD_BUCKET_NAME);
 
@@ -40,10 +39,6 @@ checkDir('./routes');
 checkDir('./controllers');
 checkDir('./services');
 checkDir('./config');
-
-if (process.env.GCS_KEYFILE) {
-  checkDir('./config/keys');
-}
 
 app.get("/_health", (req, res) => {
   res.status(200).json({
@@ -82,44 +77,71 @@ const initializeDatabase = async () => {
     const dbUrl = process.env.DATABASE_URL || '';
     console.log("- Contains 'cloudsql':", dbUrl.includes('cloudsql'));
     console.log("- Contains 'postgresql':", dbUrl.includes('postgresql'));
-    console.log("Attempting database connection with config:", {
-      host: process.env.DATABASE_URL?.split('@')[1]?.split('/')[0] || 'unknown',
-      database: process.env.DATABASE_URL?.split('/').pop() || 'unknown',
-      ssl: process.env.NODE_ENV === 'production',
-    });
-    
-    let connectionConfig;
-
-    if (
-      process.env.NODE_ENV === "production" &&
-      process.env.DATABASE_URL.includes("cloudsql")
-    ) {
-      connectionConfig = {
-        connectionString: process.env.DATABASE_URL,
-        ssl: { rejectUnauthorized: false },
+    let dbInfo = { host: 'unknown', database: 'unknown' };
+    try {
+      const urlParts = process.env.DATABASE_URL.split('/');
+      const hostPart = urlParts[2].split('@')[1] || urlParts[2];
+      dbInfo = {
+        host: hostPart || 'unknown',
+        database: urlParts[urlParts.length - 1] || 'unknown',
       };
-    } else {
-      connectionConfig = {
-        connectionString: process.env.DATABASE_URL,
-        ssl:
-          process.env.NODE_ENV === "production"
-            ? { rejectUnauthorized: false }
-            : false,
-      };
+    } catch (e) {
+      console.log("Could not parse DATABASE_URL parts for logging");
     }
-
-    pool = new Pool({
-      ...connectionConfig,
-      connectionTimeoutMillis: 10000,
-      max: 20,
-      idleTimeoutMillis: 30000,
-      retryDelay: 3000,
+    
+    console.log("Attempting database connection with config:", {
+      host: dbInfo.host,
+      database: dbInfo.database,
+      ssl: process.env.NODE_ENV === 'production'
     });
-    await pool.query("SELECT 1");
-    console.log("Database connection verified successfully");
-    return true;
+    let sslConfig;
+    if (process.env.NODE_ENV === 'production') {
+      console.log("Using production SSL configuration");
+      sslConfig = { rejectUnauthorized: false };
+    } else {
+      console.log("Using development configuration (no SSL)");
+      sslConfig = false;
+    }
+    
+    try {
+      pool = new Pool({
+        connectionString: process.env.DATABASE_URL,
+        ssl: sslConfig,
+        connectionTimeoutMillis: 10000,
+        max: 20,
+        idleTimeoutMillis: 30000,
+        retryDelay: 3000,
+      });
+      
+      await pool.query("SELECT 1");
+      console.log("Database connection verified successfully");
+      return true;
+    } catch (sslError) {
+      if (sslError.message && sslError.message.includes('SSL')) {
+        console.log("SSL connection failed, retrying without SSL...");
+        console.error("SSL Error details:", {
+          code: sslError.code,
+          message: sslError.message
+        });
+        
+        pool = new Pool({
+          connectionString: process.env.DATABASE_URL,
+          ssl: false,
+          connectionTimeoutMillis: 10000,
+          max: 20,
+          idleTimeoutMillis: 30000,
+          retryDelay: 3000,
+        });
+        
+        await pool.query("SELECT 1");
+        console.log("Database connection without SSL verified successfully");
+        return true;
+      } else {
+        throw sslError;
+      }
+    }
   } catch (error) {
-    console.error("Database connection failed:", error);
+    console.error("Database connection ultimately failed:", error);
     console.error("Error details:", {
       code: error.code,
       message: error.message,
@@ -185,25 +207,25 @@ const setupSession = () => {
 
 const startServer = async () => {
   try {
-    const dbConnected = await initializeDatabase();
+    await initializeDatabase();
     setupSession();
     
     console.log("Setting up routes individually...");
+    const routeResults = [];
     const setupRoute = (name, routePath) => {
       try {
         console.log(`Loading ${name}...`);
         const router = require(routePath);
         app.use("/api/v1", router);
         console.log(`${name} loaded successfully`);
+        routeResults.push({ name, success: true });
         return true;
       } catch (error) {
         console.error(`Error loading ${name}:`, error.message);
-        console.error(error.stack);
+        routeResults.push({ name, success: false, error: error.message });
         return false;
       }
     };
-    
-    // Define routes with their paths
     const routes = [
       { name: 'userRoutes', path: './routes/userRoutes' },
       { name: 'academicRoutes', path: './routes/academicRoutes' },
@@ -216,13 +238,13 @@ const startServer = async () => {
       { name: 'studentRoutes', path: './routes/studentRoutes' },
       { name: 'teacherRoutes', path: './routes/teacherRoutes' }
     ];
-
-    const results = routes.map(route => setupRoute(route.name, route.path));
-    const successCount = results.filter(Boolean).length;
-    
+    for (const route of routes) {
+      setupRoute(route.name, route.path);
+    }
+    const successCount = routeResults.filter(r => r.success).length;
     console.log(`Routes setup complete: ${successCount}/${routes.length} routes loaded successfully`);
-
-    // 404 handler for routes that don't exist
+    
+    // Handler untuk route 404
     app.use((req, res) => {
       res.status(404).json({
         status: false,
@@ -230,7 +252,7 @@ const startServer = async () => {
         path: req.originalUrl
       });
     });
-
+    
     // Global error handler
     app.use((err, req, res, next) => {
       console.error("Error details:", {
