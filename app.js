@@ -12,6 +12,7 @@ const app = express();
 const PORT = parseInt(process.env.PORT) || 8080;
 
 console.log(`Starting application on port ${PORT}`);
+console.log(`Database URL configured: ${process.env.DATABASE_URL ? 'Yes' : 'No'}`);
 
 app.get("/_health", (req, res) => {
   res.status(200).json({
