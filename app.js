@@ -13,6 +13,10 @@ const PORT = parseInt(process.env.PORT) || 8080;
 
 console.log(`Starting application on port ${PORT}`);
 console.log(`Database URL configured: ${process.env.DATABASE_URL ? 'Yes' : 'No'}`);
+console.log("Database URL format:", 
+  process.env.DATABASE_URL ? 
+  process.env.DATABASE_URL.replace(/postgresql:\/\/[^:]+:[^@]+@/, "postgresql://user:****@") : 
+  "DATABASE_URL not set");
 
 app.get("/_health", (req, res) => {
   res.status(200).json({
@@ -47,6 +51,7 @@ app.use(express.urlencoded({ extended: true, limit: "5mb" }));
 let pool;
 const initializeDatabase = async () => {
   try {
+    console.log("Attempting database connection...");
     let sslConfig;
     if (process.env.NODE_ENV === 'production') {
       sslConfig = { rejectUnauthorized: false };
@@ -65,6 +70,13 @@ const initializeDatabase = async () => {
     
     await pool.query("SELECT 1");
     console.log("Database connection verified successfully");
+    try {
+      const result = await pool.query("SELECT current_database();");
+      console.log("Connected to database:", result.rows[0].current_database);
+    } catch (dbNameError) {
+      console.error("Could not determine database name:", dbNameError.message);
+    }
+    
     return true;
   } catch (sslError) {
     if (sslError.message && sslError.message.includes('SSL')) {
@@ -82,13 +94,26 @@ const initializeDatabase = async () => {
       try {
         await pool.query("SELECT 1");
         console.log("Database connection without SSL verified successfully");
+        try {
+          const result = await pool.query("SELECT current_database();");
+          console.log("Connected to database:", result.rows[0].current_database);
+        } catch (dbNameError) {
+          console.error("Could not determine database name:", dbNameError.message);
+        }
+        
         return true;
       } catch (error) {
         console.error("Database connection failed:", error.message);
+        if (error.message.includes('database')) {
+          console.error("Database connection error details:", error);
+        }
         return false;
       }
     } else {
       console.error("Database connection failed:", sslError.message);
+      if (sslError.message.includes('database')) {
+        console.error("Database connection error details:", sslError);
+      }
       return false;
     }
   }

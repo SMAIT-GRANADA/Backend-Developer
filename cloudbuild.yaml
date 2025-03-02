@@ -50,7 +50,7 @@ steps:
     - '--set-cloudsql-instances'
     - 'river-sky-416523:asia-southeast2:pinanda1'
     - '--set-env-vars'
-    - 'DATABASE_URL=postgresql://postgres:${_DB_PASS}@/postgres?host=/cloudsql/river-sky-416523:asia-southeast2:pinanda1'
+    - 'DATABASE_URL=postgresql://postgres:${_DB_PASS}@/Granada_Backend?host=/cloudsql/river-sky-416523:asia-southeast2:pinanda1'
     - '--set-env-vars'
     - 'NODE_ENV=production'
     - '--set-env-vars'
