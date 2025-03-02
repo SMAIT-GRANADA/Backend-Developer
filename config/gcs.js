@@ -6,25 +6,25 @@ let bucket;
 let gcsEnabled = false;
 
 try {
-  if (!process.env.GCS_KEYFILE || !process.env.GOOGLE_CLOUD_PROJECT_ID || !process.env.GOOGLE_CLOUD_BUCKET_NAME) {
-    console.warn('GCS configuration incomplete. GCS features will be disabled.');
-    console.warn('Missing environment variables:', {
-      GCS_KEYFILE: !process.env.GCS_KEYFILE ? 'missing' : 'present',
-      GOOGLE_CLOUD_PROJECT_ID: !process.env.GOOGLE_CLOUD_PROJECT_ID ? 'missing' : 'present',
-      GOOGLE_CLOUD_BUCKET_NAME: !process.env.GOOGLE_CLOUD_BUCKET_NAME ? 'missing' : 'present'
-    });
+  const missingVars = [];
+  if (!process.env.GOOGLE_CLOUD_PROJECT_ID) missingVars.push('GOOGLE_CLOUD_PROJECT_ID');
+  if (!process.env.GOOGLE_CLOUD_BUCKET_NAME) missingVars.push('GOOGLE_CLOUD_BUCKET_NAME');
+  let storageConfig = {};
+  if (process.env.GOOGLE_CLOUD_PROJECT_ID) {
+    storageConfig.projectId = process.env.GOOGLE_CLOUD_PROJECT_ID;
+  }
+  console.log('Using Application Default Credentials for GCS authentication');
+  
+  if (missingVars.length > 0) {
+    console.warn(`GCS configuration incomplete. Missing: ${missingVars.join(', ')}. GCS features will be disabled.`);
   } else {
-    const keyFilePath = path.join(__dirname, 'keys', process.env.GCS_KEYFILE);
-    console.log('Initializing GCS with keyfile path:', keyFilePath);
+    storage = new Storage(storageConfig);
     
-    storage = new Storage({
-      keyFilename: keyFilePath,
-      projectId: process.env.GOOGLE_CLOUD_PROJECT_ID,
-    });
-    
-    bucket = storage.bucket(process.env.GOOGLE_CLOUD_BUCKET_NAME);
-    gcsEnabled = true;
-    console.log('GCS initialized successfully');
+    if (process.env.GOOGLE_CLOUD_BUCKET_NAME) {
+      bucket = storage.bucket(process.env.GOOGLE_CLOUD_BUCKET_NAME);
+      gcsEnabled = true;
+      console.log('GCS initialized successfully with bucket:', process.env.GOOGLE_CLOUD_BUCKET_NAME);
+    }
   }
 } catch (error) {
   console.error('Error initializing Google Cloud Storage:', error);
@@ -34,7 +34,7 @@ try {
 const uploadPhotoToGCS = async (photoBase64, userId) => {
   try {
     if (!gcsEnabled) {
-      console.warn('GCS upload attempted but GCS is not enabled');
+      console.warn('Upload photo attempted but GCS is not enabled');
       return null;
     }
     
@@ -75,22 +75,26 @@ const uploadPhotoToGCS = async (photoBase64, userId) => {
 async function deletePhotoFromGCS(url) {
   try {
     if (!gcsEnabled || !url) {
-      console.warn('Delete photo attempted but GCS is not enabled or URL is empty');
       return;
     }
     
     const fileName = url.split('/').pop();
     const file = bucket.file(`salary-slips/${fileName}`);
     
-    const exists = await file.exists();
-    if (!exists[0]) {
-      console.log(`File ${fileName} does not exist in GCS`);
-      return;
+    try {
+      const exists = await file.exists();
+      if (!exists[0]) {
+        console.log(`File ${fileName} does not exist in GCS`);
+        return;
+      }
+      
+      await file.delete();
+      console.log(`File ${fileName} deleted successfully from GCS`);
+    } catch (fileError) {
+      console.error('Error checking or deleting file:', fileError);
     }
-    
-    await file.delete();
   } catch (error) {
-    console.error('Error deleting from GCS:', error);
+    console.error('Error in deletePhotoFromGCS:', error);
   }
 }
 
