@@ -7,7 +7,7 @@ steps:
   # Generate Prisma Client
   - name: 'node:18'
     entrypoint: npx
-    args: ["prisma", "migrate", "dev"]
+    args: ["prisma", "migrate", "deploy"]
 
   # Build container image
   - name: 'gcr.io/cloud-builders/docker'
