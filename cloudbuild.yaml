@@ -1,82 +1,92 @@
 steps:
   # Install dependencies
-  - name: 'node:18'
+  - name: "node:18"
     entrypoint: npm
-    args: ['install']
+    args: ["install"]
 
   # Generate Prisma Client
-  - name: 'node:18'
+  - name: "node:18"
     entrypoint: npx
     args: ["prisma", "migrate", "deploy"]
 
   # Build container image
-  - name: 'gcr.io/cloud-builders/docker'
-    args: ['build', '-t', 'asia-southeast2-docker.pkg.dev/$PROJECT_ID/$_REPOSITORY/$_IMAGE_NAME', '.']
+  - name: "gcr.io/cloud-builders/docker"
+    args:
+      [
+        "build",
+        "-t",
+        "asia-southeast2-docker.pkg.dev/$PROJECT_ID/$_REPOSITORY/$_IMAGE_NAME",
+        ".",
+      ]
 
-  # Push container image  
-  - name: 'gcr.io/cloud-builders/docker'
-    args: ['push', 'asia-southeast2-docker.pkg.dev/$PROJECT_ID/$_REPOSITORY/$_IMAGE_NAME']
+  # Push container image
+  - name: "gcr.io/cloud-builders/docker"
+    args:
+      [
+        "push",
+        "asia-southeast2-docker.pkg.dev/$PROJECT_ID/$_REPOSITORY/$_IMAGE_NAME",
+      ]
 
   # Deploy to Cloud Run
-  - name: 'gcr.io/cloud-builders/gcloud'
+  - name: "gcr.io/cloud-builders/gcloud"
     args:
-    - 'run'
-    - 'deploy'
-    - 'granada-api'
-    - '--image'
-    - 'asia-southeast2-docker.pkg.dev/$PROJECT_ID/$_REPOSITORY/$_IMAGE_NAME'
-    - '--region'
-    - 'asia-southeast2'
-    - '--platform'
-    - 'managed'
-    - '--allow-unauthenticated'
-    - '--cpu-boost'
-    - '--execution-environment'
-    - 'gen2'
-    - '--memory'
-    - '1Gi'
-    - '--cpu'
-    - '1'
-    - '--min-instances'
-    - '1'
-    - '--max-instances'
-    - '8'
-    - '--timeout'
-    - '600s'
-    - '--command'
-    - 'node'
-    - '--args'
-    - 'app.js'
-    - '--set-cloudsql-instances'
-    - 'river-sky-416523:asia-southeast2:pinanda1'
-    - '--set-env-vars'
-    - 'DATABASE_URL=postgresql://postgres:${_DB_PASS}@/Granada_Backend?host=/cloudsql/river-sky-416523:asia-southeast2:pinanda1'
-    - '--set-env-vars'
-    - 'NODE_ENV=production'
-    - '--set-env-vars'
-    - 'JWT_ACCESS_SECRET=${_JWT_ACCESS_SECRET}'
-    - '--set-env-vars'
-    - 'JWT_REFRESH_SECRET=${_JWT_REFRESH_SECRET}'
-    - '--set-env-vars'
-    - 'SESSION_SECRET=${_SESSION_SECRET}'
-    - '--set-env-vars'
-    - 'IMAGEKIT_PUBLIC_KEY=${_IMAGEKIT_PUBLIC_KEY}'
-    - '--set-env-vars'
-    - 'IMAGEKIT_PRIVATE_KEY=${_IMAGEKIT_PRIVATE_KEY}'
-    - '--set-env-vars'
-    - 'IMAGEKIT_URL_ENDPOINT=${_IMAGEKIT_URL_ENDPOINT}'
-    - '--set-env-vars'
-    - 'EMAIL_USER=${_EMAIL_USER}'
-    - '--set-env-vars'
-    - 'EMAIL_PASS=${_EMAIL_PASS}'
-    - '--set-env-vars'
-    - 'CORS_ORIGIN=${_CORS_ORIGIN}'
-    - '--set-env-vars'
-    - 'GOOGLE_CLOUD_PROJECT_ID=${PROJECT_ID}'
-    - '--set-env-vars'
-    - 'GOOGLE_CLOUD_BUCKET_NAME=${_BUCKET_NAME}'
-    - '--service-account'
-    - '${_SERVICE_ACCOUNT}'
+      - "run"
+      - "deploy"
+      - "granada-api"
+      - "--image"
+      - "asia-southeast2-docker.pkg.dev/$PROJECT_ID/$_REPOSITORY/$_IMAGE_NAME"
+      - "--region"
+      - "asia-southeast2"
+      - "--platform"
+      - "managed"
+      - "--allow-unauthenticated"
+      - "--cpu-boost"
+      - "--execution-environment"
+      - "gen2"
+      - "--memory"
+      - "1Gi"
+      - "--cpu"
+      - "1"
+      - "--min-instances"
+      - "1"
+      - "--max-instances"
+      - "8"
+      - "--timeout"
+      - "600s"
+      - "--command"
+      - "node"
+      - "--args"
+      - "app.js"
+      - "--set-cloudsql-instances"
+      - "river-sky-416523:asia-southeast2:pinanda1"
+      - "--set-env-vars"
+      - "DATABASE_URL=postgresql://postgres:${_DB_PASS}@34.128.96.22:5432/Granada_Backend?sslmode=no-verify"
+      - "--set-env-vars"
+      - "NODE_ENV=production"
+      - "--set-env-vars"
+      - "JWT_ACCESS_SECRET=${_JWT_ACCESS_SECRET}"
+      - "--set-env-vars"
+      - "JWT_REFRESH_SECRET=${_JWT_REFRESH_SECRET}"
+      - "--set-env-vars"
+      - "SESSION_SECRET=${_SESSION_SECRET}"
+      - "--set-env-vars"
+      - "IMAGEKIT_PUBLIC_KEY=${_IMAGEKIT_PUBLIC_KEY}"
+      - "--set-env-vars"
+      - "IMAGEKIT_PRIVATE_KEY=${_IMAGEKIT_PRIVATE_KEY}"
+      - "--set-env-vars"
+      - "IMAGEKIT_URL_ENDPOINT=${_IMAGEKIT_URL_ENDPOINT}"
+      - "--set-env-vars"
+      - "EMAIL_USER=${_EMAIL_USER}"
+      - "--set-env-vars"
+      - "EMAIL_PASS=${_EMAIL_PASS}"
+      - "--set-env-vars"
+      - "CORS_ORIGIN=${_CORS_ORIGIN}"
+      - "--set-env-vars"
+      - "GOOGLE_CLOUD_PROJECT_ID=${PROJECT_ID}"
+      - "--set-env-vars"
+      - "GOOGLE_CLOUD_BUCKET_NAME=${_BUCKET_NAME}"
+      - "--service-account"
+      - "${_SERVICE_ACCOUNT}"
 
 images:
-  - 'asia-southeast2-docker.pkg.dev/$PROJECT_ID/$_REPOSITORY/$_IMAGE_NAME'
+  - "asia-southeast2-docker.pkg.dev/$PROJECT_ID/$_REPOSITORY/$_IMAGE_NAME"
