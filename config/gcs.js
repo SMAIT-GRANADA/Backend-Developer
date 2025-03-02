@@ -3,21 +3,41 @@ const path = require('path');
 
 let storage;
 let bucket;
+let gcsEnabled = false;
 
 try {
-  storage = new Storage({
-    keyFilename: path.join(__dirname, 'keys', process.env.GCS_KEYFILE),
-    projectId: process.env.GOOGLE_CLOUD_PROJECT_ID,
-  });
-  
-  bucket = storage.bucket(process.env.GOOGLE_CLOUD_BUCKET_NAME);
+  if (!process.env.GCS_KEYFILE || !process.env.GOOGLE_CLOUD_PROJECT_ID || !process.env.GOOGLE_CLOUD_BUCKET_NAME) {
+    console.warn('GCS configuration incomplete. GCS features will be disabled.');
+    console.warn('Missing environment variables:', {
+      GCS_KEYFILE: !process.env.GCS_KEYFILE ? 'missing' : 'present',
+      GOOGLE_CLOUD_PROJECT_ID: !process.env.GOOGLE_CLOUD_PROJECT_ID ? 'missing' : 'present',
+      GOOGLE_CLOUD_BUCKET_NAME: !process.env.GOOGLE_CLOUD_BUCKET_NAME ? 'missing' : 'present'
+    });
+  } else {
+    const keyFilePath = path.join(__dirname, 'keys', process.env.GCS_KEYFILE);
+    console.log('Initializing GCS with keyfile path:', keyFilePath);
+    
+    storage = new Storage({
+      keyFilename: keyFilePath,
+      projectId: process.env.GOOGLE_CLOUD_PROJECT_ID,
+    });
+    
+    bucket = storage.bucket(process.env.GOOGLE_CLOUD_BUCKET_NAME);
+    gcsEnabled = true;
+    console.log('GCS initialized successfully');
+  }
 } catch (error) {
   console.error('Error initializing Google Cloud Storage:', error);
-  throw error;
+  console.error('GCS features will be disabled');
 }
 
 const uploadPhotoToGCS = async (photoBase64, userId) => {
   try {
+    if (!gcsEnabled) {
+      console.warn('GCS upload attempted but GCS is not enabled');
+      return null;
+    }
+    
     if (!photoBase64) {
       throw new Error('Photo base64 is required');
     }
@@ -39,8 +59,6 @@ const uploadPhotoToGCS = async (photoBase64, userId) => {
     };
 
     await file.save(photoBuffer, options);
-
-    // Generate signed URL yang berlaku 7 hari
     const [signedUrl] = await file.getSignedUrl({
       version: 'v4',
       action: 'read',
@@ -50,13 +68,16 @@ const uploadPhotoToGCS = async (photoBase64, userId) => {
     return signedUrl;
   } catch (error) {
     console.error('Error uploading to GCS:', error);
-    throw new Error(`Failed to upload photo: ${error.message}`);
+    return null;
   }
 };
 
 async function deletePhotoFromGCS(url) {
   try {
-    if (!url) return;
+    if (!gcsEnabled || !url) {
+      console.warn('Delete photo attempted but GCS is not enabled or URL is empty');
+      return;
+    }
     
     const fileName = url.split('/').pop();
     const file = bucket.file(`salary-slips/${fileName}`);
@@ -77,5 +98,6 @@ module.exports = {
   storage,
   bucket,
   uploadPhotoToGCS,
-  deletePhotoFromGCS
+  deletePhotoFromGCS,
+  isEnabled: () => gcsEnabled
 };
