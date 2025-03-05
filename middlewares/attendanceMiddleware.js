@@ -1,6 +1,6 @@
-const ATTENDANCE_START_HOUR = 6; // Jam 6 pagi
+const ATTENDANCE_START_HOUR = 0; // Jam 6 pagi
 const ATTENDANCE_LATE_HOUR = 7;  // Jam 7 pagi
-const ATTENDANCE_LATE_MINUTE = 30; // 30 menit
+const ATTENDANCE_LATE_MINUTE = 1; // 30 menit
 const SCHOOL_LATITUDE = -6.317132;
 const SCHOOL_LONGITUDE = 106.797082;
 const MAX_DISTANCE = 3000; // dalam meter
