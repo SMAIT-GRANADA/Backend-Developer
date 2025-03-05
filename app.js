@@ -36,7 +36,7 @@ const corsOptions = {
   origin: [
     process.env.CORS_ORIGIN,
     "http://localhost:5173",
-    "https://testingbrok.vercel.app",
+    // "https://testingbrok.vercel.app",
   ].filter(Boolean),
   credentials: true,
   exposedHeaders: ["New-Access-Token"],
