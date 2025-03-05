@@ -130,7 +130,9 @@ const createAttendance = async (data) => {
 
     const attendance = await prisma.attendance.create({
       data: {
-        userId: data.userId,
+        user: {
+          connect: { id: data.userId }
+        },
         checkInTime: new Date(),
         checkInPhotoUrl: photoUrl,
         checkInLatitude: data.latitude,
