@@ -35,7 +35,7 @@ const uploadPhotoToGCS = async (photoBase64, userId) => {
   try {
     if (!gcsEnabled) {
       console.warn('Upload photo attempted but GCS is not enabled');
-      return null;
+      throw new Error('GCS tidak diaktifkan');
     }
     
     if (!photoBase64) {
@@ -55,20 +55,17 @@ const uploadPhotoToGCS = async (photoBase64, userId) => {
       contentType: 'image/jpeg',
       metadata: {
         cacheControl: 'public, max-age=31536000',
-      }
+      },
+      public: true
     };
 
     await file.save(photoBuffer, options);
-    const [signedUrl] = await file.getSignedUrl({
-      version: 'v4',
-      action: 'read',
-      expires: Date.now() + 7 * 24 * 60 * 60 * 1000, // 7 hari
-    });
 
-    return signedUrl;
+    return `https://storage.googleapis.com/${process.env.GOOGLE_CLOUD_BUCKET_NAME}/${photoFileName}`;
+    
   } catch (error) {
     console.error('Error uploading to GCS:', error);
-    return null;
+    throw error;
   }
 };
 
@@ -77,31 +74,69 @@ async function deletePhotoFromGCS(url) {
     if (!gcsEnabled || !url) {
       return;
     }
+    let filePath = '';
+    if (url.includes('storage.googleapis.com')) {
+      filePath = url.split(`${process.env.GOOGLE_CLOUD_BUCKET_NAME}/`)[1];
+    } else {
+      const fileName = url.split('/').pop();
+      if (url.includes('attendance')) {
+        filePath = `attendance/${fileName}`;
+      } else {
+        filePath = `salary-slips/${fileName}`;
+      }
+    }
     
-    const fileName = url.split('/').pop();
-    const file = bucket.file(`salary-slips/${fileName}`);
+    if (!filePath) {
+      console.error('Cannot extract file path from URL:', url);
+      return;
+    }
+    
+    const file = bucket.file(filePath);
     
     try {
-      const exists = await file.exists();
-      if (!exists[0]) {
-        console.log(`File ${fileName} does not exist in GCS`);
+      const [exists] = await file.exists();
+      if (!exists) {
+        console.log(`File ${filePath} does not exist in GCS`);
         return;
       }
       
       await file.delete();
-      console.log(`File ${fileName} deleted successfully from GCS`);
+      console.log(`File ${filePath} deleted successfully from GCS`);
     } catch (fileError) {
       console.error('Error checking or deleting file:', fileError);
+      throw fileError;
     }
   } catch (error) {
     console.error('Error in deletePhotoFromGCS:', error);
+    throw error;
   }
 }
+
+async function testGCSConnection() {
+  if (!gcsEnabled) {
+    console.log('GCS not enabled, skipping connection test');
+    return false;
+  }
+  
+  try {
+    await bucket.exists();
+    console.log('GCS connection test: SUCCESS');
+    return true;
+  } catch (error) {
+    console.error('GCS connection test: FAILED', error);
+    return false;
+  }
+}
+
+testGCSConnection().then(result => {
+  console.log(`GCS connection status: ${result ? 'OK' : 'ERROR'}`);
+});
 
 module.exports = {
   storage,
   bucket,
   uploadPhotoToGCS,
   deletePhotoFromGCS,
-  isEnabled: () => gcsEnabled
+  isEnabled: () => gcsEnabled,
+  testConnection: testGCSConnection
 };
