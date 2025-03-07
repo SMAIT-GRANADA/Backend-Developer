@@ -4,7 +4,7 @@ const { uploadPhotoToGCS, deletePhotoFromGCS } = require('../config/gcs');
 const { Parser } = require('json2csv');
 const ExcelJS = require('exceljs');
 
-const ATTENDANCE_START_HOUR = 22;
+const ATTENDANCE_START_HOUR = 0;
 const ATTENDANCE_LATE_HOUR = 7;
 const ATTENDANCE_LATE_MINUTE = 1;
 
