@@ -1,4 +1,4 @@
-const ATTENDANCE_START_HOUR = 0; // Jam 6 pagi
+const ATTENDANCE_START_HOUR = 22; // Jam 6 pagi
 const ATTENDANCE_LATE_HOUR = 7;  // Jam 7 pagi
 const ATTENDANCE_LATE_MINUTE = 1; // 30 menit
 const SCHOOL_LATITUDE = -6.131706;
