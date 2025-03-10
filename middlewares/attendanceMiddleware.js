@@ -1,8 +1,11 @@
-const ATTENDANCE_START_HOUR = 0; // Jam 6 pagi
+require('dotenv').config();
+
+const ATTENDANCE_START_HOUR = 5; // Jam 5 pagi
 const ATTENDANCE_LATE_HOUR = 7;  // Jam 7 pagi
-const ATTENDANCE_LATE_MINUTE = 1; // 30 menit
-const SCHOOL_LATITUDE = -6.232474;
-const SCHOOL_LONGITUDE = 106.849894;
+const ATTENDANCE_LATE_MINUTE = 20; // 20 menit
+
+const SCHOOL_LATITUDE = parseFloat(process.env.SCHOOL_LATITUDE);
+const SCHOOL_LONGITUDE = parseFloat(process.env.SCHOOL_LONGITUDE);
 const MAX_DISTANCE = 2000; // dalam meter
 
 const checkGeolocation = (req, res, next) => {

@@ -87,8 +87,9 @@ jobs:
           --set-env-vars IMAGEKIT_PRIVATE_KEY=${{ secrets.IMAGEKIT_PRIVATE_KEY }} \
           --set-env-vars IMAGEKIT_URL_ENDPOINT=${{ secrets.IMAGEKIT_URL_ENDPOINT }} \
           --set-env-vars GOOGLE_CLOUD_PROJECT_ID=${{ secrets.GOOGLE_CLOUD_PROJECT_ID }} \
-          --set-env-vars GOOGLE_CLOUD_BUCKET_NAME=${{ secrets.GOOGLE_CLOUD_BUCKET_NAME }}
-
+          --set-env-vars GOOGLE_CLOUD_BUCKET_NAME=${{ secrets.GOOGLE_CLOUD_BUCKET_NAME }} \
+          --set-env-vars SCHOOL_LATITUDE=${{ secrets.SCHOOL_LATITUDE }} \
+          --set-env-vars SCHOOL_LONGITUDE=${{ secrets.SCHOOL_LONGITUDE }}
           
     - name: Log deployment URL
       run: |
