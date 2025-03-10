@@ -74,9 +74,9 @@ jobs:
           --min-instances=1 \
           --max-instances=8 \
           --cpu-boost \
-          --set-cloudsql-instances=river-sky-416523:asia-southeast2:pinanda1 \
+          --set-cloudsql-instances=inductive-dream-453016-i2:asia-southeast2:smait-granada \
           --set-env-vars NODE_ENV=production \
-          --set-env-vars DATABASE_URL=postgresql://postgres:${{ secrets.DB_PASSWORD }}@34.128.96.22:5432/Granada_Backend?sslmode=no-verify \
+          --set-env-vars DATABASE_URL=postgresql://postgres:${{ secrets.DB_PASSWORD }}@34.101.190.149:5432/Granada_Backend?sslmode=no-verify \
           --set-env-vars CORS_ORIGIN=${{ secrets.CORS_ORIGIN }} \
           --set-env-vars JWT_ACCESS_SECRET=${{ secrets.JWT_ACCESS_SECRET }} \
           --set-env-vars JWT_REFRESH_SECRET=${{ secrets.JWT_REFRESH_SECRET }} \
