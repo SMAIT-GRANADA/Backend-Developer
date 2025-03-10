@@ -305,7 +305,7 @@ async function main() {
       username: 'superadmin',
       password: await hashPassword(process.env.SUPERADMIN_PASSWORD || 'superadmin123'),
       name: 'Super Admin',
-      email: 'superadmin@granada.sch.id',
+      email: 'mail@smaitgranada.sch.id',
       roles: {
         create: {
           roleId: 1
