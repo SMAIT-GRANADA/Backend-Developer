@@ -71,7 +71,7 @@ jobs:
           --timeout=600s \
           --memory=1Gi \
           --cpu=1 \
-          --min-instances=1 \
+          --min-instances=0 \
           --max-instances=8 \
           --cpu-boost \
           --set-cloudsql-instances=inductive-dream-453016-i2:asia-southeast2:smait-granada \
