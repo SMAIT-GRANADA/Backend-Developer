@@ -48,6 +48,22 @@ app.use(cors(corsOptions));
 app.use(express.json({ limit: "5mb" }));
 app.use(express.urlencoded({ extended: true, limit: "5mb" }));
 
+function formatDatabaseUrl(url) {
+  try {
+    if (!url) return url;
+    const regex = /postgresql:\/\/([^:]+):([^@]+)@([^:]+):(\d+)\/(.+)/;
+    const match = url.match(regex);
+    if (match) {
+      const [_, username, password, host, port, database] = match;
+      const encodedPassword = encodeURIComponent(password);
+      return `postgresql://${username}:${encodedPassword}@${host}:${port}/${database}`;
+    }
+    return url;
+  } catch (error) {
+    console.error("Error formatting database URL:", error);
+    return url;
+  }
+}
 let pool;
 const initializeDatabase = async () => {
   try {
@@ -60,7 +76,7 @@ const initializeDatabase = async () => {
     }
     
     pool = new Pool({
-      connectionString: process.env.DATABASE_URL,
+      connectionString: formatDatabaseUrl(process.env.DATABASE_URL),
       ssl: sslConfig,
       connectionTimeoutMillis: 10000,
       max: 20,
