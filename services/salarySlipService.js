@@ -1,6 +1,6 @@
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
-const { uploadPhotoToGCS, deletePhotoFromGCS } = require('../config/gcs');
+const { uploadPhotoToStorage, deletePhotoFromStorage } = require('../config/storage');
 
 async function isAdmin(userId) {
   const user = await prisma.user.findFirst({
@@ -52,7 +52,7 @@ async function createSalarySlip(data, uploadedBy) {
       };
     }
 
-    const slipImageUrl = await uploadPhotoToGCS(fileBase64, `salary-slips/${teacherId}`);
+    const slipImageUrl = await uploadPhotoToStorage(fileBase64, `salary-slips/${teacherId}`);
 
     const salarySlip = await prisma.salarySlip.create({
       data: {
@@ -165,12 +165,12 @@ async function updateSalarySlip(id, data, userId) {
     if (fileBase64) {
       try {
         if (existingSlip.slipImageUrl) {
-          await deletePhotoFromGCS(existingSlip.slipImageUrl);
+          await deletePhotoFromStorage(existingSlip.slipImageUrl);
         }
       } catch (error) {
         console.error('Error deleting old file:', error);
       }
-      slipImageUrl = await uploadPhotoToGCS(fileBase64, `salary-slips/${existingSlip.teacherId}`);
+      slipImageUrl = await uploadPhotoToStorage(fileBase64, `salary-slips/${existingSlip.teacherId}`);
     }
 
     const updatedSlip = await prisma.salarySlip.update({
@@ -231,7 +231,7 @@ async function deleteSalarySlip(id, userId) {
 
     try {
       if (slip.slipImageUrl) {
-        await deletePhotoFromGCS(slip.slipImageUrl);
+        await deletePhotoFromStorage(slip.slipImageUrl);
       }
     } catch (error) {
       console.error('Error deleting file from GCS:', error);

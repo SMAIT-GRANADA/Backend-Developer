@@ -7,7 +7,7 @@ on:
 env:
   PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
   IMAGE_NAME: granada-api
-  REGISTRY_LOCATION: asia-southeast2-docker.pkg.dev
+  REGISTRY_LOCATION: asia-southeast1-docker.pkg.dev
   REPOSITORY: granada-repository
   
 jobs:
@@ -45,8 +45,6 @@ jobs:
     - name: Check necessary APIs
       run: |
         gcloud services list --enabled --filter="name:run.googleapis.com" || echo "Cloud Run API may not be enabled. Continuing..."
-        gcloud services list --enabled --filter="name:sql-component.googleapis.com" || echo "SQL Component API may not be enabled. Continuing..."
-        gcloud services list --enabled --filter="name:sqladmin.googleapis.com" || echo "SQL Admin API may not be enabled. Continuing..."
     
     - name: Configure Docker for Artifact Registry
       run: |
@@ -64,7 +62,7 @@ jobs:
       run: |
         gcloud run deploy granada-api \
           --image=$REGISTRY_LOCATION/$PROJECT_ID/$REPOSITORY/$IMAGE_NAME:${{ github.sha }} \
-          --region=asia-southeast2 \
+          --region=asia-southeast1 \
           --platform=managed \
           --allow-unauthenticated \
           --execution-environment=gen2 \
@@ -74,9 +72,11 @@ jobs:
           --min-instances=0 \
           --max-instances=8 \
           --cpu-boost \
-          --set-cloudsql-instances=inductive-dream-453016-i2:asia-southeast2:smait-granada \
           --set-env-vars NODE_ENV=production \
-          --set-env-vars DATABASE_URL=postgresql://postgres:${{ secrets.DB_PASSWORD }}@34.101.190.149:5432/Granada_Backend?sslmode=no-verify \
+          --set-env-vars DATABASE_URL=${{ secrets.SUPABASE_DATABASE_URL }} \
+          --set-env-vars SUPABASE_URL=${{ secrets.SUPABASE_URL }} \
+          --set-env-vars SUPABASE_KEY=${{ secrets.SUPABASE_KEY }} \
+          --set-env-vars SUPABASE_STORAGE_BUCKET=${{ secrets.SUPABASE_STORAGE_BUCKET }} \
           --set-env-vars CORS_ORIGIN=${{ secrets.CORS_ORIGIN }} \
           --set-env-vars JWT_ACCESS_SECRET=${{ secrets.JWT_ACCESS_SECRET }} \
           --set-env-vars JWT_REFRESH_SECRET=${{ secrets.JWT_REFRESH_SECRET }} \
@@ -86,12 +86,10 @@ jobs:
           --set-env-vars IMAGEKIT_PUBLIC_KEY=${{ secrets.IMAGEKIT_PUBLIC_KEY }} \
           --set-env-vars IMAGEKIT_PRIVATE_KEY=${{ secrets.IMAGEKIT_PRIVATE_KEY }} \
           --set-env-vars IMAGEKIT_URL_ENDPOINT=${{ secrets.IMAGEKIT_URL_ENDPOINT }} \
-          --set-env-vars GOOGLE_CLOUD_PROJECT_ID=${{ secrets.GOOGLE_CLOUD_PROJECT_ID }} \
-          --set-env-vars GOOGLE_CLOUD_BUCKET_NAME=${{ secrets.GOOGLE_CLOUD_BUCKET_NAME }} \
           --set-env-vars SCHOOL_LATITUDE=${{ secrets.SCHOOL_LATITUDE }} \
           --set-env-vars SCHOOL_LONGITUDE=${{ secrets.SCHOOL_LONGITUDE }}
           
     - name: Log deployment URL
       run: |
         echo "🚀 Deployment complete! Your app is available at:"
-        gcloud run services describe granada-api --region=asia-southeast2 --format='value(status.url)'
+        gcloud run services describe granada-api --region=asia-southeast1 --format='value(status.url)'
