@@ -1,6 +1,6 @@
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
-const { uploadPhotoToGCS, deletePhotoFromGCS } = require('../config/gcs');
+const { uploadPhotoToStorage, deletePhotoFromStorage } = require('../config/storage');
 const { Parser } = require('json2csv');
 const ExcelJS = require('exceljs');
 
@@ -119,7 +119,7 @@ const createAttendance = async (data) => {
       const photoBuffer = Buffer.from(base64Data, 'base64');
       const photoFileName = `attendance/${data.userId}/${Date.now()}_checkin.jpg`;
       
-      photoUrl = await uploadPhotoToGCS(data.photoBase64, data.userId);
+      photoUrl = await uploadPhotoToStorage(data.photoBase64, data.userId);
     } catch (uploadError) {
       console.error('Error uploading check-in photo:', uploadError);
       throw new Error('Gagal mengunggah foto check-in');
@@ -184,7 +184,7 @@ const updateAttendance = async (id, data) => {
 
     if (data.photoBase64 && data.latitude && data.longitude) {
       try {
-        photoUrl = await uploadPhotoToGCS(data.photoBase64, existingAttendance.userId);
+        photoUrl = await uploadPhotoToStorage(data.photoBase64, existingAttendance.userId);
       } catch (uploadError) {
         console.error('Error uploading check-out photo:', uploadError);
         throw new Error('Gagal mengunggah foto check-out');
@@ -472,7 +472,7 @@ const deleteAttendance = async (id) => {
 
     if (attendance.checkInPhotoUrl) {
       try {
-        await deletePhotoFromGCS(attendance.checkInPhotoUrl);
+        await deletePhotoFromStorage(attendance.checkInPhotoUrl);
       } catch (error) {
         console.error('Error deleting check-in photo:', error);
       }
@@ -480,7 +480,7 @@ const deleteAttendance = async (id) => {
 
     if (attendance.checkOutPhotoUrl) {
       try {
-        await deletePhotoFromGCS(attendance.checkOutPhotoUrl);
+        await deletePhotoFromStorage(attendance.checkOutPhotoUrl);
       } catch (error) {
         console.error('Error deleting check-out photo:', error);
       }
