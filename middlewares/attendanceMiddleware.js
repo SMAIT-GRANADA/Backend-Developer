@@ -1,6 +1,6 @@
 require('dotenv').config();
 
-const ATTENDANCE_START_HOUR = 0; // Jam 5 pagi
+const ATTENDANCE_START_HOUR = 5; // Jam 5 pagi
 const ATTENDANCE_LATE_HOUR = 7;  // Jam 7 pagi
 const ATTENDANCE_LATE_MINUTE = 20; // 20 menit
 
